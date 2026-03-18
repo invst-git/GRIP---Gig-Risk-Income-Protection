@@ -267,3 +267,5 @@ The second build adds the fraud detection layer: GPS spoofing detection via sens
 The third build expands city coverage to Bengaluru, Chennai, and Hyderabad, adds the heatwave trigger for summer season, and deepens platform integration to ingest real-time order volume signals directly from partner platforms rather than approximating them from historical baselines. The compliance-as-a-service module for aggregator social security contributions under the Code on Social Security 2020 is activated, enabling B2B2C premium collection at zero marginal CAC. iOS build ships from the existing React Native codebase with no architectural changes required.
 
 ---
+
+## Team Exogeneous
