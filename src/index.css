@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #f7f4ee;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1ede6;
+  --accent-primary: #24457a;
+  --accent-secondary: #5f7fae;
+  --accent-success: #2f7a63;
+  --accent-danger: #c56066;
+  --accent-info: #6f8fc2;
+  --text-primary: #172033;
+  --text-secondary: #6f7686;
+  --text-disabled: #a6acb7;
+  --border-default: #e4ddd3;
+  --border-active: #24457a;
+  --text-on-accent: #ffffff;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--bg-primary);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(circle at top left, rgba(111, 143, 194, 0.18) 0%, rgba(111, 143, 194, 0) 28%),
+    radial-gradient(circle at 85% 18%, rgba(47, 122, 99, 0.08) 0%, rgba(47, 122, 99, 0) 24%),
+    linear-gradient(180deg, #faf8f3 0%, #f4f1ea 100%);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p {
+    margin: 0;
+  }
+}
+
+@keyframes grip-checkmark-draw {
+  from {
+    stroke-dashoffset: var(--stroke-length);
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.grip-checkmark-circle,
+.grip-checkmark-path {
+  fill: none;
+  stroke: var(--accent-primary);
+  animation: grip-checkmark-draw 0.8s ease-in-out forwards;
+}
+
+.grip-checkmark-circle {
+  --stroke-length: 220;
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+}
+
+.grip-checkmark-path {
+  --stroke-length: 90;
+  stroke-dasharray: 90;
+  stroke-dashoffset: 90;
+  animation-delay: 0.1s;
+}
+
+.grip-radial-alert {
+  background:
+    radial-gradient(circle at center, rgba(95, 127, 174, 0.22) 0%, rgba(95, 127, 174, 0.14) 20%, rgba(95, 127, 174, 0.04) 42%, rgba(247, 244, 238, 0) 74%);
+}
+
+.grip-soft-orb {
+  background:
+    radial-gradient(circle at center, rgba(95, 127, 174, 0.2) 0%, rgba(95, 127, 174, 0.1) 28%, rgba(95, 127, 174, 0.02) 56%, rgba(247, 244, 238, 0) 78%);
+}
