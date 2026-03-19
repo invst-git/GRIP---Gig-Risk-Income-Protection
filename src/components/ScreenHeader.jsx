@@ -27,7 +27,12 @@ export function ScreenHeader({
 
   if (align === 'center') {
     return (
-      <div className={cn('grid grid-cols-[40px_1fr_40px] items-center px-5 pt-5', className)}>
+      <div
+        className={cn(
+          'grid grid-cols-[40px_1fr_40px] items-center px-4 pt-4 sm:px-5 sm:pt-5',
+          className,
+        )}
+      >
         {backButton}
         <h2
           className={cn(
@@ -43,7 +48,7 @@ export function ScreenHeader({
   }
 
   return (
-    <div className={cn('flex items-center gap-3 px-5 pt-5', className)}>
+    <div className={cn('flex items-center gap-3 px-4 pt-4 sm:px-5 sm:pt-5', className)}>
       {backButton}
       <h1
         className={cn(

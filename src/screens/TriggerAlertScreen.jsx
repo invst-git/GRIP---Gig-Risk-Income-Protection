@@ -29,7 +29,7 @@ export function TriggerAlertScreen() {
   const payoutAmount = trigger.daysTriggered * profile.payoutPerDay
 
   return (
-    <PageTransition className="relative flex min-h-full flex-col overflow-hidden grip-radial-alert px-5 py-5">
+    <PageTransition className="relative flex min-h-full flex-col overflow-x-hidden overflow-y-auto grip-radial-alert px-4 py-4 sm:px-5 sm:py-5">
       <div className="relative z-10 flex h-10 items-center">
         <button
           type="button"
@@ -41,8 +41,8 @@ export function TriggerAlertScreen() {
         </button>
       </div>
 
-      <div className="relative z-10 flex flex-1 flex-col justify-center py-6">
-        <div className="space-y-6 text-center">
+      <div className="relative z-10 flex flex-1 flex-col justify-center py-4 sm:py-6">
+        <div className="mx-auto w-full max-w-[390px] space-y-5 text-center sm:space-y-6">
           <div className="flex justify-center">
             <MotionPulse
               className="h-6 w-6 rounded-full bg-accent-primary shadow-[0_0_0_10px_rgba(95,127,174,0.12)]"
@@ -51,7 +51,7 @@ export function TriggerAlertScreen() {
           </div>
 
           <div className="space-y-3">
-            <h1 className="font-display text-[32px] font-normal text-text-primary">
+            <h1 className="font-display text-[clamp(28px,8.5vw,32px)] font-normal text-text-primary">
               {trigger.type} Alert Active
             </h1>
             <p className="mx-auto max-w-[320px] text-[14px] leading-6 text-text-secondary">
@@ -104,7 +104,7 @@ export function TriggerAlertScreen() {
         </div>
       </div>
 
-      <div className="relative z-10 pb-1 pt-4">
+      <div className="relative z-10 pb-1 pt-3 sm:pt-4">
         <PrimaryButton onClick={() => navigate('/dashboard')}>
           Back to Dashboard
         </PrimaryButton>

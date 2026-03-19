@@ -36,7 +36,7 @@ export function PayoutDetailScreen() {
     <PageTransition className="flex min-h-full flex-col">
       <ScreenHeader title="Payout Detail" backTo="/payouts" />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <StaggerGroup className="space-y-6">
           <div className="space-y-2 text-center">
             <p className="font-display text-[40px] font-normal leading-none text-accent-success">
@@ -83,7 +83,7 @@ export function PayoutDetailScreen() {
         </StaggerGroup>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
+      <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
         <SecondaryButton onClick={() => setShowToast(true)}>Download Receipt</SecondaryButton>
       </div>
 

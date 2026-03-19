@@ -33,7 +33,7 @@ export function AdminDashboardScreen() {
     <PageTransition className="relative flex min-h-full flex-col overflow-hidden">
       <div className="pointer-events-none absolute left-0 top-0 h-56 w-56 rounded-full bg-[rgba(95,127,174,0.10)] blur-3xl" />
 
-      <div className="flex items-center px-5 pt-5">
+      <div className="flex items-center px-4 pt-4 sm:px-5 sm:pt-5">
         <p className="font-display text-[24px] font-normal leading-none text-text-primary">
           GRIP Admin
         </p>
@@ -42,7 +42,7 @@ export function AdminDashboardScreen() {
 
       <AdminTopTabs />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <StaggerGroup className="space-y-6">
           <section className="grid grid-cols-2 gap-3">
             <Card className="space-y-2 border-white/80">

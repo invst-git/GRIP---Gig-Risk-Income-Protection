@@ -33,11 +33,11 @@ export function PayoutHistoryScreen() {
 
   return (
     <PageTransition className="flex min-h-full flex-col">
-      <div className="px-5 pt-5">
+      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
         <h1 className="text-[18px] font-semibold text-text-primary">Payout History</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <StaggerGroup className="space-y-6">
           <Card className="space-y-4">
             <div>
@@ -59,7 +59,7 @@ export function PayoutHistoryScreen() {
             </div>
           </Card>
 
-          <div className="-mx-5 overflow-x-auto px-5">
+          <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
             <div className="flex gap-2 pb-1">
               {payoutFilters.map((item) => (
                 <FilterChip

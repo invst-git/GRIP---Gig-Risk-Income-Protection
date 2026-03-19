@@ -34,12 +34,15 @@
 
 html {
   background-color: var(--bg-primary);
+  min-height: 100%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-primary);
   background-image:
     radial-gradient(circle at top left, rgba(111, 143, 194, 0.18) 0%, rgba(111, 143, 194, 0) 28%),
@@ -48,6 +51,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-body);
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 button,
@@ -59,6 +63,8 @@ textarea {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
+  isolation: isolate;
 }
 
 @layer base {

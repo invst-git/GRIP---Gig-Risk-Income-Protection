@@ -29,7 +29,7 @@ export function PolicySelectionScreen() {
     <PageTransition className="flex min-h-full flex-col">
       <ScreenHeader title="Choose Your Plan" backTo="/dashboard" />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <div className="space-y-6">
           <div className="space-y-2">
             <h2 className="text-[18px] font-semibold text-text-primary">
@@ -107,7 +107,7 @@ export function PolicySelectionScreen() {
               onClick={() => setPendingPlan(null)}
             />
             <MotionSheet
-              className="absolute inset-x-0 bottom-0 z-50 rounded-t-[28px] border border-white/80 bg-bg-surface/96 px-5 pb-6 pt-5 shadow-frame backdrop-blur-md"
+              className="absolute inset-x-0 bottom-0 z-50 rounded-t-[28px] border border-white/80 bg-bg-surface/96 px-4 pb-5 pt-5 shadow-frame backdrop-blur-md sm:px-5 sm:pb-6"
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } }}
               exit={{ opacity: 0, y: 24, transition: { duration: 0.3, ease: 'easeOut' } }}

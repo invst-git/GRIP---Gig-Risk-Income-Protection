@@ -19,7 +19,7 @@ export function AdminTopTabs() {
         : 'dashboard'
 
   return (
-    <div className="px-5 pt-5">
+    <div className="px-4 pt-4 sm:px-5 sm:pt-5">
       <div className="grid h-[52px] grid-cols-3 rounded-full border-[1.5px] border-border-default bg-bg-elevated/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
         {tabs.map((tab) => (
           <button

@@ -24,17 +24,17 @@ export function OnboardingComplete() {
   const { selectedPlan, profile } = useGRIP()
 
   return (
-    <PageTransition className="relative flex min-h-full flex-col justify-center overflow-hidden px-5 py-10 grip-radial-alert">
+    <PageTransition className="relative flex min-h-full flex-col justify-center overflow-x-hidden overflow-y-auto px-4 py-[clamp(24px,5vh,40px)] grip-radial-alert sm:px-5">
       <div className="pointer-events-none absolute inset-x-0 top-14 z-0 mx-auto h-56 w-56 rounded-full grip-soft-orb" />
-      <StaggerGroup className="space-y-6 text-center">
+      <StaggerGroup className="mx-auto w-full max-w-[390px] space-y-5 text-center sm:space-y-6">
         <div className="relative z-10 flex justify-center">
           <div className="rounded-full border border-white/80 bg-bg-surface/86 p-4 shadow-card backdrop-blur-sm">
-            <AnimatedCheckmark className="h-28 w-28" />
+            <AnimatedCheckmark className="h-24 w-24 sm:h-28 sm:w-28" />
           </div>
         </div>
 
         <div className="relative z-10 space-y-3">
-          <h1 className="font-display text-[24px] font-normal text-text-primary">
+          <h1 className="font-display text-[clamp(22px,6.5vw,24px)] font-normal text-text-primary">
             You&apos;re covered.
           </h1>
           <p className="mx-auto max-w-[320px] text-[14px] leading-6 text-text-secondary">

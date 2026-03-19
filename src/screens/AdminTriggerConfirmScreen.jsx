@@ -31,16 +31,16 @@ export function AdminTriggerConfirmScreen() {
     }
 
   return (
-    <PageTransition className="relative flex min-h-full flex-col justify-center overflow-hidden grip-radial-alert px-5 py-10">
-      <div className="relative z-10 space-y-6 text-center">
+    <PageTransition className="relative flex min-h-full flex-col justify-center overflow-x-hidden overflow-y-auto grip-radial-alert px-4 py-[clamp(24px,5vh,40px)] sm:px-5">
+      <div className="relative z-10 mx-auto w-full max-w-[390px] space-y-5 text-center sm:space-y-6">
         <div className="flex justify-center">
           <div className="rounded-full border border-white/80 bg-bg-surface/86 p-4 shadow-card backdrop-blur-sm">
-            <AnimatedCheckmark className="h-28 w-28" />
+            <AnimatedCheckmark className="h-24 w-24 sm:h-28 sm:w-28" />
           </div>
         </div>
 
         <div className="space-y-3">
-          <h1 className="font-display text-[32px] font-normal text-text-primary">
+          <h1 className="font-display text-[clamp(28px,8.5vw,32px)] font-normal text-text-primary">
             Trigger Fired
           </h1>
           <p className="mx-auto max-w-[320px] text-[14px] leading-6 text-text-secondary">

@@ -46,7 +46,7 @@ export function OnboardingStepOne() {
       <ScreenHeader title="Step 1 of 3" backTo="/" align="center" />
       <StepDots activeStep={1} />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <div className="space-y-6">
           <div className="space-y-2">
             <h1 className="font-display text-[24px] font-normal text-text-primary">
@@ -103,7 +103,7 @@ export function OnboardingStepOne() {
         </div>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
+      <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
         <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
       </div>
     </PageTransition>

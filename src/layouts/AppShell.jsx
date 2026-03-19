@@ -48,15 +48,9 @@ export function AppShell() {
   const showBottomNav = partnerBottomNavRoutes.has(location.pathname)
 
   return (
-    <div className="min-h-screen bg-bg-primary px-0 md:px-6 md:py-6">
-      <div className="mx-auto flex min-h-screen w-full max-w-frame flex-col bg-bg-primary md:min-h-[calc(100vh-3rem)] md:overflow-hidden md:rounded-[36px] md:border md:border-white/70 md:bg-bg-surface/65 md:shadow-frame md:backdrop-blur-2xl">
-        <div
-          className={cn(
-            'relative flex-1 overflow-hidden',
-            showBottomNav &&
-              'pb-[calc(92px+max(env(safe-area-inset-bottom),12px))]',
-          )}
-        >
+    <div className="min-h-[100dvh] bg-bg-primary md:h-[100dvh] md:overflow-hidden md:p-6">
+      <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-frame flex-col overflow-hidden bg-bg-primary md:h-full md:min-h-0 md:rounded-[36px] md:border md:border-white/70 md:bg-bg-surface/65 md:shadow-frame md:backdrop-blur-2xl">
+        <div className={cn('relative flex-1 min-h-0 overflow-hidden')}>
           <AnimatePresence mode="wait" initial={false}>
             <Routes location={location} key={location.pathname}>
               {routes.map((route) => (

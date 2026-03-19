@@ -1,4 +1,6 @@
-export function LogoMark({ className = 'h-[148px] w-[148px]' }) {
+export function LogoMark({
+  className = 'h-[clamp(112px,34vw,148px)] w-[clamp(112px,34vw,148px)]',
+}) {
   return (
     <svg
       viewBox="0 0 160 160"
@@ -8,30 +10,39 @@ export function LogoMark({ className = 'h-[148px] w-[148px]' }) {
       aria-hidden="true"
     >
       <path
-        d="M50 112V63C50 56.3726 55.3726 51 62 51C68.6274 51 74 56.3726 74 63V87"
+        d="M80 22C57.9086 22 42 38.3452 42 60.1342V86.4463C42 107.87 56.1948 126.265 80 134C103.805 126.265 118 107.87 118 86.4463V60.1342C118 38.3452 102.091 22 80 22Z"
         stroke="var(--accent-primary)"
-        strokeWidth="6"
-        strokeLinecap="round"
         strokeLinejoin="round"
+        strokeWidth="6"
+      />
+      <rect
+        x="54"
+        y="76"
+        width="12"
+        height="26"
+        rx="6"
+        fill="var(--accent-primary)"
+      />
+      <rect
+        x="74"
+        y="64"
+        width="12"
+        height="38"
+        rx="6"
+        fill="var(--accent-primary)"
+      />
+      <rect
+        x="94"
+        y="52"
+        width="12"
+        height="50"
+        rx="6"
+        fill="var(--accent-primary)"
       />
       <path
-        d="M74 87V46C74 39.3726 79.3726 34 86 34C92.6274 34 98 39.3726 98 46V87"
-        stroke="var(--accent-primary)"
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M98 80V56C98 49.3726 103.373 44 110 44C116.627 44 122 49.3726 122 56V97"
-        stroke="var(--accent-primary)"
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M43 83C43 78.0294 47.0294 74 52 74C56.9706 74 61 78.0294 61 83V108C61 121.255 71.7452 132 85 132H94C110.569 132 124 118.569 124 102V92"
-        stroke="var(--accent-primary)"
-        strokeWidth="6"
+        d="M56 102C56 111.389 63.6112 119 73 119H87.5C96.6127 119 104 111.613 104 102.5V96H89"
+        stroke="var(--accent-secondary)"
+        strokeWidth="8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

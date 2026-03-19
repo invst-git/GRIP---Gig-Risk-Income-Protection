@@ -44,14 +44,14 @@ export function AdminTriggerScreen() {
 
   return (
     <PageTransition className="flex min-h-full flex-col">
-      <div className="flex items-center px-5 pt-5">
+      <div className="flex items-center px-4 pt-4 sm:px-5 sm:pt-5">
         <h1 className="text-[18px] font-semibold text-text-primary">Trigger Simulation</h1>
         <StatusBadge status="pending" label="Admin" className="ml-auto" />
       </div>
 
       <AdminTopTabs />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <div className="space-y-6">
           <Card className="relative overflow-hidden border-white/80 ring-1 ring-[rgba(36,69,122,0.12)]">
             <div className="flex items-start gap-3">
@@ -124,7 +124,7 @@ export function AdminTriggerScreen() {
         </div>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
+      <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
         <PrimaryButton
           onClick={() => setIsLoading(true)}
           loading={isLoading}
