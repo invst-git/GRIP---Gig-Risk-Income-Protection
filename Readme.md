@@ -120,6 +120,16 @@ We define three primary trigger categories for the initial product. All triggers
 
 **Primary target city and season:** Delhi NCR, October through January. This is the highest-frequency, most data-rich use case for AQI-triggered income loss in India.
 
+### Trigger 4: Social Disruption (Curfew and Zone Closure)
+
+**Data source:** Official platform zone suspension notification combined with zone-level order volume data *(order volume cross-validation simulated in prototype; requires platform data partnership in production)*.
+
+**Threshold:** Confirmed platform suspension in the affected zone AND greater than 60% drop in order volume versus the 90-day zone median within the same window.
+
+**Distinction from Triggers 1-3:** For environmental triggers, the order volume drop is a secondary confirmation signal. For Trigger 4, the platform suspension itself is the primary signal. A curfew or zone closure does not need an environmental reading to validate it - the operational shutdown is the disruption.
+
+**Payout:** Rs 400-600 per disruption day depending on coverage tier. Higher base rate reflects the binary, total-loss nature of a zone suspension versus a partial environmental slowdown.
+
 ---
 
 ## Platform Choice: Mobile Application (Android-First, iOS on Roadmap)
