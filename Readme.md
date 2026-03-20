@@ -2,23 +2,9 @@
 
 > Parametric Income Insurance for India's Food Delivery Partners
 
+> **Hackathon prototype - Guidewire DEVTrails 2026, Phase 1 submission.** All payout flows, UPI disbursements, fraud detection layers, and platform integrations described in this document are architected and demonstrated in simulation. Specific items not yet active and pending commercial partnerships include: live earnings-settlement premium deductions, real-time order volume data from Zomato/Swiggy, Airtel IoT Locate network triangulation, and Razorpay bulk payout production mode. The RBI Innovation Hub DPIP integration is a planned architectural direction, not a built or contracted capability. Research findings, trigger calibration methodology, fraud defense architecture, and the Evidence Locker design are original work completed during this hackathon.
+
 Delivery partners spend 10 hours a day gripping a handlebar, navigating rain, heat, and smog to keep India's cities fed. GRIP is built around that reality: a parametric income protection system that pays out automatically when the conditions they work in make it impossible to earn. When the weather stops them working, we make sure they still get paid.
-
----
-
-## Why GRIP
-
-The name is both an acronym and a deliberate product statement.
-
-**G** - Gig: The product is built exclusively for platform-based gig workers. Not informal workers broadly, not SMEs, not agriculture. Food delivery partners on Zomato and Swiggy.
-
-**R** - Risk: The platform performs continuous, real-time risk assessment. Every partner has a dynamic risk profile based on their operating zone, vehicle type, city, and season. Risk is not a one-time onboarding calculation; it is recalculated weekly.
-
-**I** - Income: The only thing we protect is income. Not vehicles, not health, not life. Lost wages caused by verified external disruptions. Nothing else.
-
-**P** - Protection: The product is a genuine safety net, not a performance benefit or a loyalty reward. Coverage is unconditional and uniform across all enrolled partners. It does not depend on a platform ranking, a minimum order count, or a claims process.
-
-The word GRIP itself carries the product's intent. These workers grip a handlebar for 10 hours a day in conditions most people would not step outside in. GRIP is the financial equivalent of that physical act: holding on when external conditions try to knock you off.
 
 ---
 
@@ -30,17 +16,7 @@ This was not a freak event. Delhi NCR saw a historic monsoon deluge on July 8-10
 
 The existing insurance coverage these workers receive from their platforms does not address this risk at all. Swiggy provides group accident and medical cover tied to weekly performance rankings ([Swiggy Diaries](https://blog.swiggy.com/press-release/how-delivery-partner-insurance-works-at-swiggy/)). Zomato spent over Rs 100 crore on partner insurance premiums in 2025, but that coverage is for accidents and illness and pays out only after 10 days of inability to work ([Times of India, March 2026](https://timesofindia.indiatimes.com/business/india-business/zomato-delivery-partner-earnings-rose-10-9-in-2025-founder-deepinder-goyal-bats-for-gig-model-flexibility/articleshow/126319253.cms)). Neither platform has any mechanism for the most common disruption their partners actually face: a Tuesday when it rains too hard to go outside.
 
-Only 14% of gig workers in India currently hold any form of insurance ([Dvara Research, 2023, cited in The Actuary India](https://www.theactuaryindia.org/article/insuring-the-invisibles)). The reasons are straightforward: liquidity constraints, product complexity, and a deep-seated distrust of systems that never paid out when they should have. GRIP is built to change all three of those things.
-
----
-
-## Our Solution
-
-GRIP is a parametric income insurance platform designed exclusively for food delivery partners working on Zomato and Swiggy. The core mechanic is simple: when an independently verifiable external disruption event occurs, such as a heatwave, a flood, or a severe AQI spike, and that event is confirmed to have materially impacted delivery operations, the partner receives a cash payout directly to their UPI ID. No claim to file. No adjuster to argue with. No week-long wait.
-
-This is not an indemnity product. We do not assess individual losses. The trigger fires, the payout goes out. That is the entire claims process.
-
-We cover income loss only. Vehicle repairs, health, life, and accident coverage are explicitly out of scope because those risks are already addressed, however imperfectly, by existing platform covers.
+Only 14% of gig workers in India currently hold any form of insurance ([Dvara Research, 2023, cited in The Actuary India](https://www.theactuaryindia.org/article/insuring-the-invisibles)). The reasons are straightforward: liquidity constraints, product complexity, and a deep-seated distrust of systems that never paid out when they should have. We cover income loss only. Vehicle repairs, health, life, and accident coverage are explicitly out of scope because those risks are already addressed, however imperfectly, by existing platform covers.
 
 ---
 
@@ -65,6 +41,8 @@ He has never bought insurance because every product he has seen requires him to 
 ---
 
 ## Scenario Walkthroughs
+
+> *The following scenarios describe the intended system behaviour demonstrated in simulation. Payouts, trigger confirmations, and order volume cross-validation are mocked in the prototype.*
 
 ### Scenario 1: The AQI Winter (Delhi, November)
 
@@ -102,7 +80,7 @@ Coverage tiers are structured as follows:
 - **Standard (1.25x multiplier):** Rs 400 per disruption day, capped at Rs 1,200 per week
 - **Premium (1.50x multiplier):** Rs 500 per disruption day, capped at Rs 1,500 per week
 
-**Critical UX design decision:** Premiums are not collected as a separate payment. They are auto-deducted from the partner's weekly earnings settlement on the platform. This single design choice is the difference between 14% uptake and significantly higher adoption. A landmark Randomized Controlled Trial in Kenya demonstrated that aligning premium collection with income timing increased insurance take-up from 5% to 72%, whereas a 30% price discount had zero statistically significant effect ([Casaburi and Willis, American Economic Review, 2020](https://haushofer.ne.su.se/ec2303/Lecture%204%20-%20Agriculture%20&%20Risk/Non-required%20papers/Casaburi_Willis_AER_2020.pdf)). VimoSEWA confirmed this independently: when premiums were linked to Fixed Deposits, renewal hit 100% compared to 22-41% under voluntary payment schemes ([ICMIF Foundation India diagnostic report, 2021](https://icmiffoundation.org/wp-content/uploads/2021/06/India-diagnostic-complete-report.pdf)).
+**Critical UX design decision:** Premiums are not collected as a separate payment. They are auto-deducted from the partner's weekly earnings settlement on the platform *(simulated in prototype; requires platform partnership in production)*. This single design choice is the difference between 14% uptake and significantly higher adoption. A landmark Randomized Controlled Trial in Kenya demonstrated that aligning premium collection with income timing increased insurance take-up from 5% to 72%, whereas a 30% price discount had zero statistically significant effect ([Casaburi and Willis, American Economic Review, 2020](https://haushofer.ne.su.se/ec2303/Lecture%204%20-%20Agriculture%20&%20Risk/Non-required%20papers/Casaburi_Willis_AER_2020.pdf)). VimoSEWA confirmed this independently: when premiums were linked to Fixed Deposits, renewal hit 100% compared to 22-41% under voluntary payment schemes ([ICMIF Foundation India diagnostic report, 2021](https://icmiffoundation.org/wp-content/uploads/2021/06/India-diagnostic-complete-report.pdf)).
 
 ---
 
@@ -142,10 +120,6 @@ We define three primary trigger categories for the initial product. All triggers
 
 **Primary target city and season:** Delhi NCR, October through January. This is the highest-frequency, most data-rich use case for AQI-triggered income loss in India.
 
-### Composite AND-Logic
-
-A payout triggers when the environmental threshold is confirmed AND the platform order volume signal drops by more than 30% versus the zone's 90-day median within the same window. Both conditions must be true simultaneously. An environmental breach alone, where partners are still actively completing orders, does not trigger a payout. An order volume drop alone, without an independently verified environmental cause, does not trigger a payout. Both signals must align. This dual-confirmation design is the primary basis risk control: it ensures payouts reflect genuine income loss rather than statistical coincidences from a single data source.
-
 ---
 
 ## Platform Choice: Mobile Application (Android-First, iOS on Roadmap)
@@ -158,9 +132,9 @@ Delivery partners spend 6-8 hours a day inside the Zomato and Swiggy mobile apps
 
 **Why React Native:** React Native compiles a single JavaScript codebase into a native Android APK and a native iOS IPA separately. The core product logic, UI, API integrations, ML model calls, and fraud detection layer are written once and run on both platforms. The only platform-specific differences are push notification backends (Firebase Cloud Messaging for Android, Apple Push Notification Service for iOS) and build environments. React Native libraries abstract both of these away, meaning the codebase remains unified throughout. There is no stack change between Android and iOS builds.
 
-**iOS:** iOS support is on the V2 roadmap. The technical groundwork is already in place by virtue of using React Native. No architectural changes are required to ship an iOS build. The decision to sequence Android before iOS is purely one of market prioritisation for the launch segment, not technical constraint.
+**iOS:** iOS support is on the Phase 3 roadmap. The technical groundwork is already in place by virtue of using React Native. No architectural changes are required to ship an iOS build. The decision to sequence Android before iOS is purely one of market prioritisation for the launch segment, not technical constraint.
 
-The IAMAI-Kantar 2023 study found that 57% of mobile internet users in India prefer content in Indic languages ([IAMAI-Kantar Internet in India 2023](https://www.mediainfoline.com/article/internet-in-india-2023-report-by-iamai-and-kantar)). The partner-facing app launches in Hindi and English, with Tamil, Telugu, and Kannada added in V2. KYC onboarding uses Aadhaar-based video KYC via Signzy, which achieves a 96% call conversion rate and supports nine Indian languages on connections as low as 75 kbps ([Signzy](https://www.signzy.com/blogs/bringing-kyc-to-every-corner-of-india-with-rbi-video-kyc-security-and-more)).
+The IAMAI-Kantar 2023 study found that 57% of mobile internet users in India prefer content in Indic languages ([IAMAI-Kantar Internet in India 2023](https://www.mediainfoline.com/article/internet-in-india-2023-report-by-iamai-and-kantar)). The partner-facing app launches in Hindi and English, with Tamil, Telugu, and Kannada added in Phase 3. KYC onboarding uses Aadhaar-based video KYC via Signzy, which achieves a 96% call conversion rate and supports nine Indian languages on connections as low as 75 kbps ([Signzy](https://www.signzy.com/blogs/bringing-kyc-to-every-corner-of-india-with-rbi-video-kyc-security-and-more)).
 
 ---
 
@@ -171,7 +145,7 @@ The IAMAI-Kantar 2023 study found that 57% of mobile internet users in India pre
 The premium engine uses a gradient boosting model (XGBoost) trained on the following features:
 
 - Partner's operating zone (geo-encoded)
-- City and zone historical disruption frequency, derived from IMD and CPCB data using the station-first counting protocol across official stations: Safdarjung (Delhi), Santacruz and Colaba (Mumbai), [Nungambakkam (Chennai, Station ID 43278)](https://city.imd.gov.in/citywx/city_weather_test_try_warnings.php?id=43278), and [Begumpet (Hyderabad, Station ID 43128)](https://city.imd.gov.in/citywx/city_weather_test_try_warnings.php?id=43128)
+- City and zone historical disruption frequency, derived from IMD and CPCB data using the station-first counting protocol across official stations: Safdarjung (Delhi), Santacruz and Colaba (Mumbai), [Nungambakkam (Chennai, Station ID 43278)](https://city.imd.gov.in/citywx/city_weather_test_try_aans.php?id=43278), and [Begumpet (Hyderabad, Station ID 43128)](https://city.imd.gov.in/citywx/city_weather_test_try_warnings.php?id=43128)
 - Seasonal risk window (pre-monsoon, monsoon, post-monsoon, winter)
 - Partner activity profile (average weekly orders, average active hours, vehicle type: EV vs ICE)
 - Zone-level order volume volatility (standard deviation of weekly order counts over trailing 12 weeks)
@@ -180,43 +154,25 @@ At launch, this model is trained on historical IMD and CPCB disruption data for 
 
 The model outputs a Zone Risk Score between 0.85 and 1.50. This score multiplies against the Rs 49 base premium to produce the partner's personalised weekly premium. A new partner with no personal history defaults to the city-zone population median score until four weeks of activity data are accumulated, at which point the model switches to their personal profile.
 
-### End-to-End Decision Flow: From Trigger to Payout
+### Trigger-to-Payout Flow
 
-This is the complete sequence of what happens when a parametric trigger event occurs. Every step is automated. No human action is required from the partner at any point.
+> *Steps marked* **[simulated]** *are mocked in the Phase 1 prototype.*
 
-**Step 1 - Oracle Ingestion (continuous, every 15 minutes)**
+**Step 1 - Oracle Ingestion (every 15 minutes)**
 
-The Trigger Engine polls three independent data sources simultaneously: the IMD city station API for temperature and rainfall, the CPCB AQI API via data.gov.in, and OpenWeatherMap as the commercial cross-validation source. Each reading is tagged with a measured-vs-estimated flag and the source station ID before being written to the event log in PostgreSQL.
+The Trigger Engine polls IMD, CPCB, and OpenWeatherMap simultaneously. Each reading is tagged with a measured-vs-estimated flag and station ID. A breach requires at least two of three sources to confirm before proceeding.
 
-**Step 2 - Threshold Evaluation**
+**Step 2 - Persistence and Order Volume Check [simulated]**
 
-The rules engine compares each ingested reading against the configured thresholds for the relevant city and trigger type. A threshold breach by a single source does not fire a trigger. The quorum rule requires at least two of three independent sources to confirm the breach before proceeding. This eliminates single-source instrumentation errors and prevents oracle manipulation.
+The engine verifies the threshold has held for the minimum consecutive period (two days for heat and AQI, one 24-hour window for rainfall), then cross-validates against zone-level order volume. If volume has not dropped more than 30% versus the 90-day median, the trigger is held and logged as a near-miss.
 
-**Step 3 - Persistence Check**
+**Step 3 - Fraud Scoring and Partner Identification [architected; partially implemented]**
 
-The trigger is not fired on the first day of a breach. The rules engine checks that the threshold has been exceeded for the minimum required consecutive period: two days for heat and AQI triggers, one 24-hour window for rainfall. This persistence check prevents payouts for brief spikes that do not meaningfully disrupt delivery operations.
+Eligible partners in the affected zone are identified. Each generates a payout intent with a unique idempotency key. The Isolation Forest model scores each intent against attestation verdict, location consistency, GNSS signal quality, temporal burst position, and device graph membership before any payout is released.
 
-**Step 4 - Zone-Level Order Volume Cross-Validation**
+**Step 4 - Payout and Evidence Logging [Razorpay sandbox]**
 
-Once the environmental persistence check passes, the engine queries the platform order volume API for the affected city zones. If zone-level order volume has dropped more than 30% versus the 90-day rolling median, the composite trigger is confirmed. If order volume is normal despite the environmental reading, the trigger is held and logged as a near-miss for model calibration purposes.
-
-**Step 5 - Eligible Partner Identification**
-
-The system queries all partners with active policies in the affected zone whose coverage tier includes the triggered disruption type. Each eligible partner generates a payout intent record with a unique idempotency key derived from the event ID and the partner ID. This prevents duplicate payouts if the system retries.
-
-**Step 6 - Fraud Score Computation**
-
-Before any payout is processed, the Isolation Forest anomaly model scores each payout intent against five signals: Play Integrity or App Attest attestation verdict, GPS-to-network location divergence via Airtel IoT Locate, GNSS raw signal C/N0 consistency, temporal burst position within the zone claim distribution, and device graph cluster membership. Partners scoring below the fraud threshold proceed to Step 7 automatically. Partners scoring above proceed to the Tier 2 or Tier 3 review workflow.
-
-**Step 7 - Payout Orchestration**
-
-Clean payout intents are batched and submitted to Razorpay's bulk payout API. First-time beneficiaries are capped at Rs 4,000 per the UPI cooling period constraint. The orchestrator monitors each payout response code and routes failures to the appropriate retry logic: FL/FP codes wait 24 hours, Z9 codes retry within 2-24 hours, code 091 timeouts wait 60 minutes before status checks. Razorpay's intelligent retry engine provides an additional 8% uplift on collection success ([Razorpay, 2024](https://razorpay.com/blog/upi-autopay-with-intelligent-revenue-protect/)).
-
-**Step 8 - Partner Notification and Evidence Logging**
-
-On UPI credit confirmation, the partner receives a push notification in their preferred language stating the payout amount, the trigger reason, and the days covered. Simultaneously, the Evidence Locker writes a BSA 2023 Section 63 compliant certificate containing the SHA-256 hash of all telemetry associated with that payout event. The complete sequence from Step 1 threshold breach to Step 8 UPI credit targets under 15 minutes median latency.
-
-The fraud detection architecture is covered in full in the Adversarial Defense and Anti-Spoofing Strategy section, which details the five-layer defense stack including hardware attestation, GNSS raw signal analysis, Airtel IoT Locate network verification, temporal burst detection, and device graph clustering.
+Clean intents are submitted to Razorpay sandbox. First-time beneficiaries are capped at Rs 4,000 per the UPI cooling period constraint. On confirmation, the partner receives a push notification in their preferred language and the Evidence Locker writes a BSA 2023 Section 63 compliant SHA-256 certificate for the event. Target latency from trigger confirmation to UPI credit: under 15 minutes.
 
 ---
 
@@ -242,12 +198,12 @@ flowchart TD
         IMD["IMD Station API\nTemperature + Rainfall"]
         CPCB["CPCB AQI API\ndata.gov.in"]
         OWM["OpenWeatherMap\nCross-validation"]
-        PLATFORM["Platform Order API\nZone Volume Signals"]
-        AIRTEL["Airtel IoT Locate\nGSMA SIM Swap API"]
+        PLATFORM["Platform Order API\nZone Volume Signals (simulated)"]
+        AIRTEL["Airtel IoT Locate\nPlanned partnership"]
     end
 
     subgraph PAYMENTS["Payment Layer"]
-        RAZORPAY["Razorpay Bulk Payouts"]
+        RAZORPAY["Razorpay Bulk Payouts\nSandbox mode"]
         UPI["UPI Credit\nTarget under 15 min"]
     end
 
@@ -272,7 +228,7 @@ flowchart TD
     CPCB -->|"Every 15 min"| TRIGGER
     OWM -->|"Cross-validation"| TRIGGER
     PLATFORM -->|"Order volume delta"| TRIGGER
-    AIRTEL -->|"Network location check"| FRAUD
+    AIRTEL -->|"Network location check (planned)"| FRAUD
 
     TRIGGER -->|"Quorum confirmed"| FRAUD
     ML -->|"Zone Risk Score"| API
@@ -294,186 +250,74 @@ flowchart TD
 
 **Backend:** FastAPI (Python). Chosen for async support, automatic OpenAPI documentation, and the ability to serve the ML model as an API endpoint without a separate inference server. Deployed on [AWS t4g.micro](https://aws.amazon.com/ec2/instance-types/t4/) with 20GB gp3 EBS storage at approximately $9-10 per month (ap-south-1 region).
 
-**Frontend (Partner App):** React Native. A single codebase compiles to native Android (APK/AAB) for the launch build and native iOS (IPA) for V2. The app is mobile-first, vernacular-first, and optimised for budget devices with intermittent connectivity. Push notifications use Firebase Cloud Messaging on Android and Apple Push Notification Service on iOS, abstracted through a unified React Native layer so the application code does not diverge between platforms.
+**Frontend (Partner App):** React Native. A single codebase compiles to native Android (APK/AAB) for the launch build and native iOS (IPA) for Phase 3. The app is mobile-first, vernacular-first, and optimised for budget devices with intermittent connectivity.
 
-**Frontend (Admin Dashboard):** React web, desktop-first, with charts and a city-zone disruption heatmap for insurer analytics. Platform-agnostic by nature.
+**Frontend (Admin Dashboard):** React web, desktop-first, with charts and a city-zone disruption heatmap for insurer analytics.
 
-**Database:** PostgreSQL. Stores partner profiles, policy records, trigger events, payout history, and the full audit trail for every data point that contributed to a trigger decision. Every trigger event record stores the raw source reading, the measured-vs-estimated flag, the station ID, and the timestamp. This is the data governance structure required for regulatory defensibility under IRDAI audit.
+**Database:** PostgreSQL. Stores partner profiles, policy records, trigger events, payout history, and the full audit trail for every data point that contributed to a trigger decision.
 
-**Trigger APIs:**
-- IMD city station data for temperature and rainfall: free tier, station-level resolution ([IMD data supply procedures](https://mausam.imd.gov.in/newdelhi/docs/data-procedure.pdf))
-- CPCB AQI: free REST API via [data.gov.in](https://www.data.gov.in/resource/real-time-air-quality-index-various-locations)
-- OpenWeatherMap free tier: backup and cross-validation source (1,000 API calls per day on free plan)
-- Platform order volume API: zone-level order drop signals, integrated via platform data partnership with CloudEvents 1.0 JSON envelope format for schema compliance
-
-**Payments:** Razorpay for all payouts ([Razorpay bulk payouts documentation](https://razorpay.com/docs/x/bulk-payouts/)), with full sandbox support during development.
-
-Key engineering constraint built into the payout orchestrator from day one: first-time payouts to new beneficiaries are hard-capped at Rs 4,000. Banks enforce a UPI cooling period limiting new beneficiary transactions to Rs 5,000 in the first 24 hours, and any amount above this fails 100% deterministically ([SBI Yono - UPI transaction limits](https://sbi.bank.in/web/yono/blog/understand-upi-transaction-limits-cooling-period-and-payment-tips)). The retry engine handles three specific failure codes:
-
-- FL/FP (First Transaction Limit Exceeded): Do not retry. Wait 24 hours or reduce amount below Rs 5,000 ([UPI error codes](https://smartgateway.hdfcbank.com/docs/hdfc-resources/docs/common-resources/upi-error-codes))
-- Z9 (Insufficient Funds): Notify sender and retry within 2-24 hours
-- Code 091 (Timeout Pending, Axis Bank): Wait 60+ minutes before any action to prevent duplicate debits
-
-[Razorpay reports an 8% uplift](https://razorpay.com/blog/upi-autopay-with-intelligent-revenue-protect/) in debit collections using intelligent retries. Target payout latency is under 15 minutes from trigger confirmation to UPI credit, benchmarked against [Decentro's documented 3.8-second median UPI payout latency](https://decentro.tech/blog/decentro-growth-2025/) for optimised bulk payouts.
-
----
-
-## Competitive Landscape
-
-No pure-play D2C parametric income insurance product for food delivery partners exists in India today. The market is open.
-
-The closest live product is Go Digit's parametric wage-loss insurance, developed with K.M. Dastur and distributed through Jan Sahas to migrant and construction workers in Delhi-NCR. It uses AQI above 400 for 3 out of 5 days as a trigger and pays up to Rs 6,000 ([IBS Intelligence, 2024](https://ibsintelligence.com/ibsi-news/digit-insurance-kmd-launch-parametric-cover-for-delhi-ncr-migrant-workers/)). GRIP's differentiation: food delivery partners instead of construction workers, a rainfall trigger added, composite trigger design, and B2B2C distribution through platforms rather than NGOs.
-
-VimoSEWA, in partnership with IBISA and AXA Climate, runs a parametric heat pilot for informal women workers in Ahmedabad using a temperature threshold above 43.2°C for seven or more days, paying up to Rs 3,000 ([SEWA Insurance report, December 2025](https://www.sewainsurance.org/wp-content/uploads/2025/12/Parametric-Heat-and-Rainfall-Insurance-for-Informal-Women-Workers.pdf)). Their calibration mistake directly informs our threshold design.
-
-Among platform-embedded products: Swiggy's cover is indemnity-based and tied to performance rankings ([Swiggy Diaries](https://blog.swiggy.com/press-release/how-delivery-partner-insurance-works-at-swiggy/)). Zomato's cover addresses illness and accidents, not environmental shutdowns ([Zomato Health, Safety and Wellbeing report, 2025](https://b.zmtcdn.com/data/file_assets/93720629bed5214e067c1a3a7f4362fb1743054722.pdf)). Neither covers what GRIP covers.
-
-Adjacent insurtechs with relevant infrastructure include [Toffee Insurance](https://timesofindia.indiatimes.com/business/india-business/toffee-insurance-raises-5-5-million-in-series-a/articleshow/72859952.cms) (approximately $12.2M raised, bite-sized microinsurance via UPI), [Onsurity](https://startuptimes.in/insurtech-innovators-indias-startups-insuring-500-million-lives-in-2025/) ($50M+, group health for SME cohorts), Bimaplan (API-led embedded insurance infrastructure), and Zopper (acquired GramCover for rural and informal worker expertise). None compete directly on parametric income protection for delivery partners.
-
-**IRDAI Regulatory Precedent:** TATA AIG General Insurance received sandbox approval for a product titled "Parametric Insurance" under Cohort 1, Tranche 2, tested May through October 2020 ([IRDAI Regulatory Sandbox Tranche 2 approval document](https://irdai.gov.in/documents/37343/1082836/2nd+tranche+of+approvals+under+the+Regulatory+Sandbox+Attachment-1.pdf/27dc711e-e36a-111e-5325-657989bd551d?version=2.0&t=1640589248081)). Operational details are commercially confidential but the approval confirms the IRDAI Sandbox pathway is viable for parametric products. GRIP is designed to follow this pathway under IRDAI Regulatory Sandbox 2025 regulations, which allow up to 36 months of testing.
-
----
-
-## Market Opportunity
-
-Zomato reported an average of 473,000 monthly active delivery partners for FY25 ([Zomato Annual Report FY2024-25, NSE filing](https://nsearchives.nseindia.com/corporate/ZOMATO_24072025202057_EternalNoticeAnnual_Report202425Signed.pdf)). Swiggy reported approximately 516,000 average monthly transacting partners for the same period ([Voronoi](https://www.voronoiapp.com/business/Swiggy-vs-Zomato-Whos-Winning-Indias-Food-Delivery-War-6452)). Combined, that is approximately 1 million monthly active partners across both platforms.
-
-After adjusting for 30% multi-homing overlap, filtering to the top 150 cities which account for 85% of active partners, and applying a 40% weekly-active rate to the monthly base, the realistic addressable base is 260,000 to 430,000 weekly-active partners.
-
-At Rs 49 per week per partner, with a 55% loss ratio and Rs 150 customer acquisition cost, the break-even enrollment count to cover Rs 1 crore in operating overhead is approximately 20,535 partners. That is under 8% of the conservative addressable base.
-
-**The Compliance Distribution Wedge:** The [Code on Social Security 2020](https://prsindia.org/files/bills_acts/acts_parliament/2020/Code%20On%20Social%20Security,%202020.pdf) mandates that platform aggregators contribute 1-2% of annual turnover (capped at 5% of worker payouts) toward gig worker social security schemes. The specific commencement notification for aggregator contributions is pending as of early 2026 ([DLA Piper GENIE, 2025](https://knowledge.dlapiper.com/dlapiperknowledge/globalemploymentlatestdevelopments/2025/government-of-india-notifies-the-labour-codes-ushers-a-new-era-of-compliances)), but the obligation is established in law. GRIP positions itself as the compliance-ready mechanism through which Zomato and Swiggy discharge this obligation, turning a regulatory liability into a branded worker benefit. Under this B2B2C model, the platform pays the premium on behalf of partners, CAC approaches Rs 150 or below, and adoption is automatic rather than voluntary.
-
----
-
-## Analytics Dashboard
-
-GRIP operates two distinct dashboard surfaces: one for the delivery partner and one for the insurer.
-
-The partner-facing dashboard shows the information Arjun actually needs in a disruption: his current coverage status and tier, the active trigger alert if one is live in his zone with the real-time AQI or rainfall reading, his payout history with dates and amounts, the total income protected since enrollment, and his next premium deduction date and amount. Nothing more. The design principle is that a partner in a flood zone should be able to open the app and understand his situation in under ten seconds without reading anything.
-
-The insurer admin dashboard is built for operational decision-making and regulatory reporting. It tracks live trigger status across all monitored cities with current readings versus thresholds for each trigger type, payout latency distribution (median and P99) updated in real time during active trigger events, loss ratio by city and trigger type over rolling 30, 90, and 365-day windows, fraud flag rate and Tier 2 and Tier 3 escalation volumes as a percentage of total claims, a city-zone disruption heatmap showing historical trigger frequency by geography, and a predictive disruption calendar for the upcoming 7 days based on IMD forecast data. The predictive calendar is the operationally critical feature for the insurer: it allows the risk team to see a likely trigger event 48-72 hours in advance, verify liquidity is sufficient to cover the expected payout volume, and pre-position the fraud review team before the burst arrives rather than reacting to it.
-
-Both dashboards pull from the same PostgreSQL event log that stores every trigger reading, fraud score, payout intent, and UPI response code. The data governance structure ensures every metric displayed is traceable to a primary source record with a timestamp, station ID, and measured-vs-estimated flag. This is not just good product design. It is the audit trail that makes the IRDAI regulatory submission defensible.
-
+**Payments:** Razorpay sandbox for all payouts during the hackathon ([Razorpay bulk payouts documentation](https://razorpay.com/docs/x/bulk-payouts/)). First-time payouts hard-capped at Rs 4,000 per the UPI cooling period constraint.
 ---
 
 ## Product Roadmap
 
-**MVP: Core Insurance Engine**
+**Phase 2 (Weeks 3–4): Automation and Protection**
 
-The first build establishes the product foundation: partner onboarding with Aadhaar-based video KYC, policy creation with weekly premium calculation, and the parametric trigger engine connected to IMD and CPCB data feeds. The payout orchestrator runs on Razorpay with the Rs 4,000 first-disbursement cap and code-aware retry logic enforced from day one. The XGBoost premium model is trained on historical IMD and CPCB disruption data for Delhi and Mumbai, the two highest-frequency risk cities. Initial launch targets Delhi NCR for the AQI season (October to January) and Mumbai for the monsoon season (July to September).
+Partner registration and onboarding flow, live policy creation with dynamic weekly premium calculation from the XGBoost model, claims management UI, and 3–5 automated parametric triggers connected to public APIs and mocks. Zero-touch claim experience - no action required from the partner once a trigger fires.
 
-**V1: Fraud Layer and Partner Dashboard**
+**Phase 3 (Weeks 5–6): Scale and Optimise**
 
-The second build adds the fraud detection layer: GPS spoofing detection via sensor fusion, Isolation Forest anomaly detection for unusual claim patterns, and duplicate claim prevention through idempotency key validation. The partner-facing dashboard goes live, showing active coverage status, payout history, and disruption alerts. The insurer admin dashboard launches with loss ratios, a city-zone trigger heatmap, and a predictive disruption calendar for the upcoming week based on IMD forecast data.
-
-**V2: Multi-City Scale and Platform Integration**
-
-The third build expands city coverage to Bengaluru, Chennai, and Hyderabad, adds the heatwave trigger for summer season, and deepens platform integration to ingest real-time order volume signals directly from partner platforms rather than approximating them from historical baselines. The compliance-as-a-service module for aggregator social security contributions under the Code on Social Security 2020 is activated, enabling B2B2C premium collection at zero marginal CAC. iOS build ships from the existing React Native codebase with no architectural changes required.
+Full fraud detection layer (GPS spoofing detection via sensor fusion, Isolation Forest anomaly model, device graph clustering), mock UPI payouts via Razorpay sandbox demonstrating sub-15-minute payout from trigger to credit, partner dashboard (active coverage, payout history, disruption alerts), and insurer admin dashboard (loss ratios, trigger heatmap, 7-day predictive disruption calendar). iOS build ships from the existing React Native codebase.
 
 ---
 
 ## Adversarial Defense and Anti-Spoofing Strategy
 
-A parametric insurance platform faces a structurally different fraud threat than a traditional indemnity product. Because payouts are triggered by environmental data rather than individual proof of loss, a coordinated syndicate does not need to fake an accident or a hospital bill. They only need to fake a location. This is a far lower bar, and organised rings in India have demonstrated repeatedly that they will exploit it.
+A parametric insurance platform faces a structurally different fraud threat than a traditional indemnity product. Because payouts are triggered by environmental data rather than individual proof of loss, a coordinated syndicate does not need to fake an accident or a hospital bill. They only need to fake a location.
 
-The documented precedent is precise. In 2020, a four-person syndicate in Bengaluru used the "Mock Locations (fake GPS path)" Android application, cycling through approximately 500 SIM cards to simulate delivery routes and drain Ola's commission system of lakhs of rupees before the Central Crime Branch made arrests ([The News Minute, 2020](https://www.thenewsminute.com/atom/four-ola-drivers-bengaluru-cheat-firm-lakhs-rupees-using-fake-location-tech-126392)). In 2023, a similar SIM-cycling scheme was used against Uber, generating fake trips via pre-activated SIM cards, with Risk Entity Watch anomaly detection eventually flagging the ring ([Economic Times, 2023](https://m.economictimes.com/tech/technology/5000-delivery-workers-terminated-every-month-on-zomato-deepinder-goyal/articleshow/126331099.cms)). The attack vector for GRIP is the same mechanic at a larger scale: spoof a location into a live trigger zone, claim the payout, launder it through UPI hops within minutes.
-
-Indian fraud rings operating via Telegram demonstrate a documented operational tempo that makes slow detection fatal. Syndicates use remote Command and Control servers and Telegram bot telemetry for real-time coordination ([Group-IB Classiscam Report, 2023](https://www.group-ib.com/blog/classiscam-2023/)). Stolen funds move through 10-15 UPI or banking hops within minutes of collection, and police advisories consistently identify a 2-4 hour window before recovery becomes impossible. The syndicate structure is divided: Signalers monitor weather alerts and trigger threshold breaches, Operators execute claim submissions, Tool Suppliers distribute spoofing software, and Mule Recruiters manage the bank account networks that receive and disperse funds. When a weather threshold breaches publicly, the Signaler network activates within minutes. GRIP's defense architecture is built around this specific operational timeline, not a generic fraud model.
+The documented precedent is precise. In 2020, a four-person syndicate in Bengaluru used mock GPS applications, cycling through approximately 500 SIM cards to drain Ola's commission system before the Central Crime Branch made arrests ([The News Minute, 2020](https://www.thenewsminute.com/atom/four-ola-drivers-bengaluru-cheat-firm-lakhs-rupees-using-fake-location-tech-126392)). Indian fraud rings operating via Telegram move stolen funds through 10-15 UPI hops within minutes of collection, with a documented 2-4 hour recovery window ([Group-IB Classiscam Report, 2023](https://www.group-ib.com/blog/classiscam-2023/)). GRIP's defense architecture is built around that specific operational timeline.
 
 Simple GPS verification is not a defense. It is the attack surface.
 
-### 1. Differentiating a Stranded Partner from a Bad Actor
+### Five-Layer Defense Stack
 
-The fundamental insight from security research is that GPS coordinates are the easiest signal to fake and therefore the worst signal to rely on alone. The correct architecture asks: what signals cannot be simultaneously faked at scale by 500 actors coordinating via Telegram?
+> *Layers 1–2 are implemented in the Phase 1 prototype. Layers 3–5 are architected for Phase 3.*
 
-**The Spoofing Stack and Its Failure Modes**
+**Layer 1 - Hardware-Backed Attestation**
 
-Android GPS spoofing operates through the OS's built-in mock location facility. Common tools including Fake GPS Location by Lexa and GPS Joystick by The App Ninjas inject coordinates via Google Play services' Fused Location Provider mock APIs, which on Android 12 and above causes returned Location objects to be flagged via `Location.isMock() == true` ([Android FusedLocationProviderClient documentation](https://developers.google.com/android/reference/com/google/android/gms/location/FusedLocationProviderClient)). Advanced attackers escalate to root-level frameworks: Magisk with Zygisk modules and LSPosed hooks that tamper with system properties and hide Developer Options to evade client-side detection ([GNSS Spoofing Modeling and Consistency-Check-Based Spoofing Mitigation, ResearchGate, 2025](https://www.researchgate.net/publication/389335580_GNSS_Spoofing_Modeling_and_Consistency-Check-Based_Spoofing_Mitigation_with_Android_Raw_Data)).
+GRIP mandates Google Play Integrity API for every claim submission on Android. The `MEETS_STRONG_INTEGRITY` verdict provides hardware-backed proof of a locked bootloader and certified OS image, enforced server-side with a bound nonce per request. This single gate eliminates all emulator farms, VirtualXposed containers, and non-rooted spoofing applications. For iOS, Apple App Attest provisions a per-device key in the Secure Enclave with anti-replay counter verification.
 
-The critical failure modes of each tool define GRIP's detection strategy:
+**Layer 2 - GNSS Raw Signal Analysis**
 
-- Fake GPS Location (Lexa): Fails against server-side hardware attestation. Detectable via `isMock()==true` if not rooted.
-- GPS Joystick: Fails against IMU kinematic consistency checks. Cannot fabricate physically plausible accelerometer streams synchronised with claimed GNSS movement.
-- VirtualXposed / Parallel Space: Fails hardware-backed attestation. Leaves container package artifacts in filesystem paths.
-- Magisk / LSPosed: Brittle against Android 13+ strong integrity verification. The Play Integrity Fix Zygisk module attempts to spoof build fingerprints but fails when server enforces nonce binding and signature verification.
+GRIP analyses raw GNSS measurements that spoofing applications cannot fabricate: Carrier-to-Noise density (C/N0) and Automatic Gain Control (AGC) readings. Spoofed signals show anomalous C/N0 uniformity inconsistent with real satellite reception ([Detecting GNSS Jamming and Spoofing on Android Devices, NAVIGATION Journal, 2022](https://navi.ion.org/content/69/3/navi.537)). The raw measurement hash is included in every claim submission.
 
-iOS spoofing scales poorly for large rings. Non-jailbroken iOS requires tethered Xcode GPX simulation per device, making it operationally infeasible for a 500-member syndicate ([Apple DeviceCheck documentation](https://developer.apple.com/documentation/devicecheck/validating-apps-that-connect-to-your-server)). On iOS 15 and above, `CLLocation.sourceInformation.isSimulatedBySoftware` is set to true for software simulation. Jailbroken iOS using MobileSubstrate tweaks leaves detectable filesystem artifacts.
+**Layer 3 - Network Triangulation** *(planned partnership)*
 
-**Hardware-Backed Attestation as the First Gate**
+Cellular tower triangulation via the GSMA Open Gateway framework achieves 70–191 metre RMSE in urban India - sufficient to determine whether a device is in a flood zone or at home. Faking this requires rogue base station hardware at telecom scale, which is not feasible for a Telegram ring. When GPS and network location diverge by more than 500 metres, the claim is automatically escalated.
 
-The single most effective control that cannot be defeated by standard spoofing applications is cryptographic hardware attestation enforced server-side. GRIP mandates Google Play Integrity API for every claim submission on Android. The `IntegrityManager.requestIntegrityToken()` call returns a nested JWT ([Play Integrity API documentation](https://developer.android.com/google/play/integrity/overview)). On Android 13 and above, the `MEETS_STRONG_INTEGRITY` verdict provides hardware-backed proof of a locked bootloader and certified OS image ([Android Play Integrity standard requests](https://developer.android.com/google/play/integrity/standard)). GRIP's server rejects any claim submission that does not carry a valid `MEETS_STRONG_INTEGRITY` token with a bound nonce generated server-side for that specific request. This single gate eliminates all emulator farms, all VirtualXposed containers, and all non-rooted spoofing applications simultaneously.
+**Layer 4 - Temporal Burst Detection**
 
-For iOS, Apple App Attest provisions a per-app, per-device key in the Secure Enclave ([Apple DeviceCheck documentation](https://developer.apple.com/documentation/devicecheck)). The server validates the Apple certificate chain, the App ID hash, and a nonce, and subsequent claim requests must sign request-bound data with verification of a strictly increasing counter for anti-replay ([Apple Attestation Object Validation Guide](https://developer.apple.com/documentation/devicecheck/attestation-object-validation-guide)).
+Telegram-coordinated syndicates produce a statistically distinctive pattern: a spike of claims from one zone within minutes of a threshold breach becoming public. Claims exceeding three standard deviations above the historical zone mean within any 90-minute window trigger a liquidity throttle - payouts are held up to 4 hours pending syndicate analysis. Legitimate partners receive an immediate in-app notification with an estimated resolution time.
 
-Attestation is combined with OAuth 2.0 DPoP (Demonstrating Proof-of-Possession), which binds access tokens to the hardware-backed key. This defeats replay attacks where a valid token is intercepted and reused from a different device.
+**Layer 5 - Device Graph Clustering**
 
-**GNSS Raw Signal Analysis**
+Every device is fingerprinted using hardware identifiers, installed application signatures, screen resolution, and system font set. The graph clusters fingerprints by shared infrastructure - shared IP subnets, Wi-Fi BSSIDs, and SIM batch IMSI prefixes. The 2020 Ola case involved exactly this pattern: 500 SIM cards cycling through four devices, detectable in retrospect. GRIP's graph analysis is designed to detect it in real time.
 
-Beyond the OS-level mock flag, GRIP analyses raw GNSS measurements that spoofing applications cannot fabricate: Carrier-to-Noise density (C/N0) and Automatic Gain Control (AGC) readings. Legitimate GNSS signals from satellites show characteristic C/N0 distributions based on satellite geometry and atmospheric conditions. Spoofed signals injected via software show anomalous C/N0 uniformity and AGC patterns inconsistent with real satellite reception ([Detecting GNSS Jamming and Spoofing on Android Devices, NAVIGATION Journal, 2022](https://navi.ion.org/content/69/3/navi.537)). This analysis is performed on-device and the raw measurement hash is included in the claim submission, providing a tamper-evident signal that is independently verifiable server-side.
+**Oracle Security**
 
-**Out-of-Band Telecom Verification**
+The research reveals a third attack surface most teams miss: the weather data source itself. Two Colorado ranchers physically tampered with NOAA rain gauges to avoid crop insurance payouts and were sentenced to federal prison in 2024. The Mango Markets DeFi exploit drained $110 million via price oracle manipulation. All three cross-industry cases attack the data source, not the claims process. GRIP's three-source quorum means a manipulated reading from any single source cannot fire a payout.
 
-The research finding that changes the architecture most significantly is this: cellular tower triangulation using Enhanced Cell ID with Timing Advance achieves a Root Mean Square Error of 70 to 191 metres in urban India ([GSMA Open Gateway Location API overview, 2025](https://bxbucket.blob.core.windows.net/bxbucket/opengateway-web/uploads/2025/2/overview-location-verification-API-20250220_compressed-1.pdf)). This is sufficient accuracy to determine whether a device is in a flood-affected zone or at home. Faking this signal requires rogue base station hardware operating at telecom scale, which is not feasible for a 500-member Telegram ring.
+**Evidence Locker**
 
-Airtel, Jio, and Vi have launched network-based APIs under the GSMA Open Gateway framework, including the Airtel IoT Locate API for network-triangulation-based location verification and a SIM Swap API (available from October 2025) that detects recent SIM card changes indicating account takeover ([GSMA Open Gateway Press Release, October 2025](https://www.gsma.com/newsroom/press-release/indian-mobile-operators-help-online-businesses-combat-scams-and-identity-theft-through-new-federated-network-services-supported-by-gsma-open-gateway/)). GRIP integrates these APIs for high-value claim verification. When GPS claims a partner is in a flood zone but the Airtel IoT Locate API places the device 15 kilometres away in a residential area, that divergence is a hard fraud signal. When the SIM Swap API reports the partner's SIM was changed within the past 24 hours - a classic identity churn tactic - the claim is automatically escalated.
+All fraud telemetry is logged with SHA-256 certificates per Bharatiya Sakshya Adhiniyam 2023, Section 63, ensuring admissibility in Indian courts - designed to survive the country's 92.6% court pendency backlog ([NCRB Crime in India 2023](https://www.ncrb.gov.in/uploads/files/2CrimeinIndia2023PartII2.pdf)).
 
-The divergence threshold for automatic escalation is 500 metres between GPS-claimed location and network-derived location. Below 500 metres, the claim proceeds normally. Above 500 metres, the claim enters the Tier 2 review workflow described below.
+**Three-Tier Claims Review**
 
-### 2. Detecting a Coordinated Fraud Ring
+- **Tier 1 - Auto-approved:** Strong attestation + location consistency + normal claim timing → payout in under 15 minutes, no human intervention.
+- **Tier 2 - Soft hold, max 4 hours:** One or two anomaly signals → partner notified immediately, 10-second on-device liveness check or single-tap location confirmation.
+- **Tier 3 - Manual review, 24-hour SLA:** Multiple high-confidence fraud signals → human reviewer with full signal stack. Every denied claim generates an automatic appeals notification; successful appeals receive payout plus Rs 50 goodwill credit.
 
-Individual device signals detect individual fraud. Coordinated ring detection requires a different analytical layer that operates across the entire claims portfolio simultaneously.
-
-**Temporal Burst Detection**
-
-Telegram-coordinated syndicates produce a statistically distinctive temporal pattern: a large volume of location claims from a specific trigger zone arriving within a narrow window immediately after a threshold breach becomes publicly known. GRIP's real-time anomaly engine monitors claim arrival rates per zone per trigger type as a time series. A claim volume spike exceeding three standard deviations above the historical mean for that zone, city, and trigger combination within any 90-minute window triggers an automatic liquidity throttle: payouts for that zone are held in a processing queue pending syndicate analysis before any funds are released. Honest partners whose claims are held during a throttle event receive an immediate in-app notification with an estimated resolution time. The throttle does not deny claims; it delays disbursement by a maximum of 4 hours while the syndicate analysis runs.
-
-**Device Graph and Infrastructure Clustering**
-
-Every device interacting with GRIP is fingerprinted using hardware identifiers, installed application signatures, screen resolution, and system font set. This fingerprint is non-personally-identifying but session-consistent. The device graph clusters fingerprints by shared infrastructure: devices that share an IP subnet, devices that have connected to the same Wi-Fi BSSID, and devices whose SIM cards were purchased from the same batch (detectable via IMSI prefix patterns). A cluster of 50 devices with near-identical fingerprints submitting claims from the same trigger zone within a 90-minute window is a structurally impossible legitimate scenario. The 2020 Ola Bengaluru case involved exactly this pattern: 500 SIM cards cycling through four devices, creating an infrastructure cluster that was detectable in retrospect but not in real time. GRIP's graph analysis is designed to detect this pattern in real time.
-
-**Privacy-Preserving Cross-Platform Federation**
-
-The most sophisticated syndicates may exploit multiple platforms simultaneously. GRIP's feature store is architected to participate in the RBI Innovation Hub's Digital Payments Intelligence Platform (DPIP), which employs a cross-silo federated learning architecture where participating institutions train fraud models locally and share only encrypted model weight updates via Multi-Party Computation and Secure Enclaves, achieving API latency under 500 milliseconds ([RBIH DPIP Architecture, 2024-2025](https://rbihub.in/projects/digital-payments-intelligence-platform)). NPCI is separately piloting a score-level fusion system with partner banks to reduce false positives in UPI transactions. Participation in these networks means GRIP's fraud model benefits from syndicate signals detected across the broader Indian fintech ecosystem, not only from GRIP's own claims data. A ring that has been flagged on another platform is flagged on GRIP before they submit their first claim.
-
-**Securing the Parametric Oracle**
-
-The research reveals a third attack surface that most teams will entirely miss: the weather data source itself. In 2016-2017, two Colorado ranchers physically tampered with National Weather Service rain gauges by plugging funnels with silicone and cutting wires to artificially lower precipitation readings and avoid triggering crop insurance payouts. They were sentenced to federal prison and ordered to pay over $6.5 million in restitution ([U.S. DOJ Press Release, 2024](https://www.justice.gov/usao-co/pr/two-southeastern-colorado-farmers-sentenced-federal-prison-and-will-pay-over-65-million)). In decentralised finance, oracle manipulation is the leading cause of protocol losses: $403.2 million across 41 incidents in 2022 alone, including the Mango Markets exploit where an attacker manipulated a low-liquidity token price to drain $110 million from the protocol ([CFTC Charges against Avraham Eisenberg, 2022](https://www.cftc.gov/PressRoom/PressReleases/8647-23)).
-
-The IMD's public data feeds use IP whitelisting and HTTPS but carry no cryptographic response signing and no tamper-evident timestamps. The CPCB explicitly disclaims that its live AQI data may contain abnormal values due to instrumental errors ([ChainScore Labs - Parametric Insurance Triggers Are a Honeypot for Hackers, 2024](https://chainscorelabs.com/pt/blog/real-estate-tokenization-hype-vs-reality/insurance-and-risk-mitigation/why-parametric-triggers-create-new-attack-vectors)). A single-source oracle built on either feed is brittle by design.
-
-GRIP's oracle architecture uses a minimum three-source quorum: IMD station data, CPCB AQI, and a commercial provider (OpenWeatherMap or Tomorrow.io) as the third independent source. The trigger decision uses a median estimator across all three sources, discarding statistical outliers. A trigger fires only when at least two of three independent sources confirm the threshold breach. A manipulated or instrumentation-faulty reading from a single source cannot fire a payout. For the HTTPS data feeds that lack native cryptographic signing, GRIP implements attested TLS proofs using a DECO-style protocol to generate verifiable proofs of data origin that can be audited post-event ([ChainScore Labs, 2024](https://chainscorelabs.com/pt/blog/real-estate-tokenization-hype-vs-reality/insurance-and-risk-mitigation/why-parametric-triggers-create-new-attack-vectors)).
-
-### 3. UX Balance: Handling Flagged Claims Without Penalising Honest Workers
-
-The 2024 Dvara Research study on PMJJBY and PMSBY found that beneficiaries who were enrolled but unaware of their coverage or who received no payouts stopped engaging with the product entirely. A fraud system that generates false positives during genuine weather emergencies is a product-destroying event, not an operational inconvenience.
-
-GRIP's flagged claim workflow uses a three-tier risk classification:
-
-**Tier 1 - Auto-Approved**
-
-Partners whose Play Integrity or App Attest token carries `MEETS_STRONG_INTEGRITY`, whose GPS-to-network location divergence is below 500 metres, whose GNSS raw signal patterns are consistent with genuine outdoor exposure, and whose claim arrival timing is within the normal distribution for their zone and trigger type receive automatic approval. Payout is processed immediately via Razorpay with a target latency under 15 minutes from trigger confirmation to UPI credit. No human intervention. This covers the large majority of legitimate claims.
-
-**Tier 2 - Soft Hold, Maximum 4 Hours**
-
-Partners who trigger one or two anomaly signals but not a full fraud signature are placed on a soft hold. The payout is not denied. The partner receives an immediate in-app notification in Hindi or their preferred language: "Your payout is being verified. This is a routine check during high-claim periods. You will receive payment within 4 hours." The secondary verification presents one action: a 10-second liveness video processed entirely on-device using on-device ML, with no biometric data transmitted to servers. For partners in genuine network-degraded conditions where video upload is infeasible, a single-tap location confirmation is accepted as an alternative. A genuine partner stranded in a flood zone will complete either action without hesitation. A bad actor sitting at home with a spoofing application faces an environment check their residential surroundings cannot pass.
-
-**Tier 3 - Manual Review, 24-Hour SLA**
-
-Partners who trigger multiple high-confidence fraud signals, who are members of a detected device cluster, or who fail Tier 2 verification are routed to a human review queue. The payout is held. The partner receives a notification with a plain-language explanation and a 24-hour SLA commitment. Human reviewers have access to the full signal stack: attestation verdict, GPS-to-network divergence measurement, GNSS raw signal analysis, device graph cluster membership, platform activity trail, and the temporal burst analysis for their zone. All review decisions are logged with structured reasoning fields for regulatory audit.
-
-**Evidence Locker and Legal Readiness**
-
-The cybercrime conviction rate in India in 2023 was 27.6%, with a court pendency rate of 92.6% ([NCRB Crime in India 2023](https://www.ncrb.gov.in/uploads/files/2CrimeinIndia2023PartII2.pdf)). Cases take years to reach verdict. Evidence collected today must be admissible in court years later under the Bharatiya Sakshya Adhiniyam 2023, which replaced the Indian Evidence Act and governs digital evidence admissibility from July 1, 2024. Section 63 of the BSA mandates a two-part certificate containing the SHA-256 cryptographic hash of every electronic record to prove its integrity in court ([Bharatiya Sakshya Adhiniyam 2023](https://upload.indiacode.nic.in/view-casepdf?type=act&id=AC_CEN_5_23_00049_2023-47_1719292804654)).
-
-GRIP's Evidence Locker automatically generates BSA 2023 Section 63 compliant certificates for every piece of collected fraud telemetry: device fingerprints, sensor logs, network metadata, attestation tokens, and claim submission records. System clocks are synchronised with NIC/NPL NTP servers as mandated by CERT-In Direction 70B (April 2022), and all logs are retained for a rolling 180-day period within Indian jurisdiction ([CERT-In Direction 70B](https://www.cert-in.org.in/PDF/CERT-In_Directions_70B_28.04.2022.pdf)). The Delhi High Court ruling in Neetu Singh v. Telegram (2022) established that Indian law enforcement can obtain Telegram user metadata including mobile numbers and IP addresses via court order. When a syndicate is identified, GRIP's Evidence Locker produces a court-ready evidence package that law enforcement can act on immediately rather than spending months reconstructing a forensic record.
-
-**Appeals and Fairness Diagnostics**
-
-Every denied claim generates an automatic appeals notification with a plain-language explanation. The appeals process is a single in-app button triggering re-review by a senior analyst within 48 hours. Partners who successfully appeal a wrongfully denied claim receive their payout plus a Rs 50 goodwill credit. Fairness diagnostics are run monthly: if any segment (EV vs ICE riders, specific city zones, specific platforms) shows a disproportionately high false positive rate, the model is recalibrated before the next trigger cycle. Target false positive rate is below 2% of all legitimate claims. A Fraud Control Management Committee chaired by the Chief Risk Officer, consistent with the governance structure documented at Acko ([Acko Anti-Fraud Policy](https://www.acko.com/wp-content/uploads/2020/06/anti-fraud-policy.pdf)), reviews the monthly diagnostics and has authority to adjust model thresholds without engineering intervention.
-
-The architecture is asymmetric by design. A spoofing actor must simultaneously defeat hardware attestation, GNSS raw signal analysis, network-level location verification via Airtel IoT Locate, temporal burst detection, and device graph clustering. Defeating any one of these layers in isolation is feasible. Defeating all five simultaneously, at scale, within the 2-4 hour window before funds are irrecoverable, is not.
+The architecture is asymmetric by design. Defeating any one layer is feasible. Defeating all five simultaneously within the 2-4 hour recovery window is not.
 
 ---
 
