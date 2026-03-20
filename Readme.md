@@ -40,6 +40,22 @@ He has never bought insurance because every product he has seen requires him to 
 
 ---
 
+## Partner Onboarding and Application Workflow
+
+The onboarding flow is designed to take under three minutes and require no prior insurance knowledge.
+
+**Step 1 - Download and registration:** The partner downloads the GRIP app and registers using their Zomato or Swiggy partner ID. This links their account to their active delivery zone automatically.
+
+**Step 2 - KYC:** Identity verification uses Aadhaar-based video KYC via Signzy, which supports nine Indian languages on connections as low as 75 kbps and achieves a 96% call conversion rate. The partner does not need to visit a branch or upload documents manually.
+
+**Step 3 - Coverage selection:** The partner selects a coverage tier - Basic, Standard, or Premium. The app displays the weekly premium for their specific zone, calculated by the XGBoost model, and the payout they would receive per disruption day. No insurance jargon. The screen shows one number in, one number out.
+
+**Step 4 - Premium deduction:** The weekly premium is designed to auto-deduct from the partner's earnings settlement on the platform *(simulated in prototype; requires platform partnership in production)*. No separate payment action is ever required.
+
+**Step 5 - Coverage active:** From the next earnings cycle, the partner is covered. If a trigger fires in their zone, the payout reaches their UPI account without any further interaction. The app sends a push notification in their preferred language stating the trigger reason, disruption days covered, and the amount paid.
+
+---
+
 ## Scenario Walkthroughs
 
 > *The following scenarios describe the intended system behaviour demonstrated in simulation. Payouts, trigger confirmations, and order volume cross-validation are mocked in the prototype.*
