@@ -170,6 +170,13 @@ export const adminTriggerConfig = {
     unit: 'C',
     title: 'Heatwave',
   },
+  Curfew: {
+    fieldLabel: 'Zone Suspension Confirmed',
+    threshold: 'Confirmed',
+    defaultReading: 'Yes',
+    unit: '',
+    title: 'Curfew',
+  },
 }
 
 export const defaultTriggerAlert = {

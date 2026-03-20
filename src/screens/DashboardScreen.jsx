@@ -5,6 +5,7 @@ import { StaggerGroup } from '../components/StaggerGroup'
 import { Card, ProgressBar, StatusBadge } from '../components/ui'
 import { recentActivity, riskSnapshot } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
+import { activeTrigger as mockActiveTrigger } from '../mockData'
 import { formatCurrency, formatSignedCurrency } from '../lib/utils'
 
 function StatPill({ label, value }) {
@@ -19,6 +20,7 @@ function StatPill({ label, value }) {
 export function DashboardScreen() {
   const navigate = useNavigate()
   const { profile, activeTrigger } = useGRIP()
+  const bellTrigger = activeTrigger ?? mockActiveTrigger
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-hidden">
@@ -37,7 +39,9 @@ export function DashboardScreen() {
           aria-label="Open trigger alerts"
         >
           <BellIcon className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent-danger" />
+          {bellTrigger.status === 'Active' ? (
+            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent-danger" />
+          ) : null}
         </button>
       </div>
 

@@ -26,7 +26,10 @@ export function AdminTriggerConfirmScreen() {
       title: adminTriggerConfig[adminSimulation.triggerType].title,
       affectedPartners,
       estimatedPayout,
-      readingValue: Number(adminSimulation.readingValue) || 0,
+      readingValue:
+        adminSimulation.triggerType === 'Curfew'
+          ? adminSimulation.readingValue || adminTriggerConfig.Curfew.defaultReading
+          : Number(adminSimulation.readingValue) || 0,
       daysActive: Number(adminSimulation.daysActive) || 0,
     }
 

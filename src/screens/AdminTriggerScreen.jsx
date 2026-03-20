@@ -12,6 +12,12 @@ const triggerOptions = [
   { label: 'AQI', value: 'AQI' },
   { label: 'Rainfall', value: 'Rainfall' },
   { label: 'Heatwave', value: 'Heatwave' },
+  { label: 'Curfew', value: 'Curfew' },
+]
+
+const curfewConfirmationOptions = [
+  { label: 'Yes', value: 'Yes' },
+  { label: 'No', value: 'No' },
 ]
 
 export function AdminTriggerScreen() {
@@ -85,18 +91,27 @@ export function AdminTriggerScreen() {
               onChange={(event) => updateAdminSimulation('city', event.target.value)}
               options={cityOptions.map((city) => ({ label: city, value: city }))}
             />
-            <InputField
-              label={triggerMeta.fieldLabel}
-              type="text"
-              inputMode="numeric"
-              value={adminSimulation.readingValue}
-              onChange={(event) =>
-                updateAdminSimulation(
-                  'readingValue',
-                  event.target.value.replace(/\D/g, '').slice(0, 4),
-                )
-              }
-            />
+            {adminSimulation.triggerType === 'Curfew' ? (
+              <SegmentedControl
+                label={triggerMeta.fieldLabel}
+                options={curfewConfirmationOptions}
+                value={adminSimulation.readingValue}
+                onChange={(value) => updateAdminSimulation('readingValue', value)}
+              />
+            ) : (
+              <InputField
+                label={triggerMeta.fieldLabel}
+                type="text"
+                inputMode="numeric"
+                value={adminSimulation.readingValue}
+                onChange={(event) =>
+                  updateAdminSimulation(
+                    'readingValue',
+                    event.target.value.replace(/\D/g, '').slice(0, 4),
+                  )
+                }
+              />
+            )}
             <InputField
               label="Days Active"
               type="text"

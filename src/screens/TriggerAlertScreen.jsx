@@ -5,28 +5,24 @@ import { ChevronLeftIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
 import { pulseAnimation } from '../lib/animations'
 import { useGRIP } from '../context/GRIPContext'
-import { defaultTriggerAlert } from '../data/appData'
+import { activeTrigger as mockActiveTrigger } from '../mockData'
 import { formatCurrency } from '../lib/utils'
 
 const MotionPulse = motion.span
 
-function getAlertCopy(triggerType, city, threshold) {
-  if (triggerType === 'Rainfall') {
-    return `${city} rainfall has crossed ${threshold}mm for the required trigger window. Your payout is being processed automatically.`
+function getAlertCopy(trigger) {
+  if (trigger.type === 'Curfew') {
+    return `${trigger.zone}, ${trigger.city} is under an official suspension. Your payout is being processed automatically.`
   }
 
-  if (triggerType === 'Heatwave') {
-    return `${city} temperature has breached ${threshold} C for 2 consecutive days. Your payout is being processed automatically.`
-  }
-
-  return `${city} AQI has breached ${threshold} for 2 consecutive days. Your payout is being processed automatically.`
+  return `A qualifying ${trigger.type.toLowerCase()} trigger has been confirmed in ${trigger.zone}, ${trigger.city}. Your payout is being processed automatically.`
 }
 
 export function TriggerAlertScreen() {
   const navigate = useNavigate()
-  const { activeTrigger, profile } = useGRIP()
-  const trigger = activeTrigger ?? defaultTriggerAlert
-  const payoutAmount = trigger.daysTriggered * profile.payoutPerDay
+  const { activeTrigger } = useGRIP()
+  const trigger = activeTrigger ?? mockActiveTrigger
+  const payoutAmount = (trigger.payoutAmount ?? 0) * (trigger.daysTriggered ?? 0)
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-x-hidden overflow-y-auto grip-radial-alert px-4 py-4 sm:px-5 sm:py-5">
@@ -55,36 +51,45 @@ export function TriggerAlertScreen() {
               {trigger.type} Alert Active
             </h1>
             <p className="mx-auto max-w-[320px] text-[14px] leading-6 text-text-secondary">
-              {getAlertCopy(trigger.type, trigger.city, trigger.threshold)}
+              {getAlertCopy(trigger)}
             </p>
           </div>
 
           <Card className="space-y-3 border-white/80 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
-              Current {trigger.type} Reading
+              CURRENT READING
             </p>
             <p className="font-display text-[48px] font-normal leading-none text-accent-primary">
               {trigger.reading}
             </p>
-            <p className="text-[12px] text-text-secondary">Measured - {trigger.source}</p>
-            <p className="text-[13px] text-text-secondary">Threshold: {trigger.threshold}</p>
+            <p className="text-[12px] text-text-secondary">
+              {trigger.zone}, {trigger.city}
+            </p>
           </Card>
 
           <Card className="space-y-3 border-white/80 text-left">
             <div className="flex items-center justify-between gap-4">
               <p className="text-[13px] text-text-secondary">Trigger Status</p>
-              <StatusBadge status="pending" label="Active" />
+              <StatusBadge status="pending" label={trigger.status} />
             </div>
             <div className="flex items-center justify-between gap-4">
               <p className="text-[13px] text-text-secondary">Days Triggered</p>
               <p className="text-[14px] font-semibold text-text-primary">
-                {trigger.daysTriggered} of required {trigger.requiredDays}
+                {trigger.type === 'Curfew'
+                  ? `${trigger.daysTriggered} day confirmed`
+                  : `${trigger.daysTriggered} of required 2`}
               </p>
             </div>
             <div className="flex items-center justify-between gap-4">
               <p className="text-[13px] text-text-secondary">Payout Amount</p>
               <p className="text-[14px] font-semibold text-text-primary">
                 {formatCurrency(payoutAmount)}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-[13px] text-text-secondary">Order Volume Drop</p>
+              <p className="text-[14px] font-semibold text-text-primary">
+                {trigger.orderVolumeDrop}
               </p>
             </div>
             <div className="flex items-center justify-between gap-4">

@@ -25,6 +25,17 @@ export const payoutHistory = [
   { id: 6, type: "Rainfall", dateRange: "Aug 10, 2024", days: 0, amount: 0, status: "Not Triggered" },
 ];
 
+export const activeTrigger = {
+  type: "Curfew",
+  city: "Delhi",
+  zone: "Connaught Place",
+  reading: "Official zone suspension issued",
+  orderVolumeDrop: "71%",
+  payoutAmount: 600,
+  daysTriggered: 1,
+  status: "Active",
+};
+
 export const adminMetrics = {
   activePolicies: 1284,
   triggersThisMonth: 7,

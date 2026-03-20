@@ -1,7 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState } from 'react'
-import { adminTriggerConfig, defaultTriggerAlert, planOptions } from '../data/appData'
-import { affectedPartnersByCity, partnerProfile } from '../mockData'
+import { adminTriggerConfig, planOptions } from '../data/appData'
+import {
+  activeTrigger as mockActiveTrigger,
+  affectedPartnersByCity,
+  partnerProfile,
+} from '../mockData'
 
 const GRIPContext = createContext(null)
 
@@ -59,7 +63,8 @@ export function GRIPProvider({ children }) {
   const affectedPartners =
     affectedPartnersByCity[adminSimulation.city] ?? affectedPartnersByCity.Delhi
   const daysActive = Number(adminSimulation.daysActive) || 0
-  const estimatedPayout = affectedPartners * daysActive * 400
+  const payoutRate = adminSimulation.triggerType === 'Curfew' ? 600 : 400
+  const estimatedPayout = affectedPartners * daysActive * payoutRate
 
   function updateOnboardingField(field, value) {
     setOnboardingForm((current) => ({
@@ -81,7 +86,10 @@ export function GRIPProvider({ children }) {
 
   function fireAdminTrigger() {
     const config = adminTriggerConfig[adminSimulation.triggerType]
-    const readingValue = Number(adminSimulation.readingValue) || config.defaultReading
+    const readingValue =
+      adminSimulation.triggerType === 'Curfew'
+        ? adminSimulation.readingValue || config.defaultReading
+        : Number(adminSimulation.readingValue) || config.defaultReading
     const triggeredState = {
       triggerType: adminSimulation.triggerType,
       city: adminSimulation.city,
@@ -94,13 +102,23 @@ export function GRIPProvider({ children }) {
 
     setLastTriggeredSimulation(triggeredState)
     setActiveTrigger({
-      ...defaultTriggerAlert,
+      ...mockActiveTrigger,
       type: adminSimulation.triggerType,
       city: adminSimulation.city,
-      reading: readingValue,
+      reading:
+        adminSimulation.triggerType === 'Curfew'
+          ? readingValue === 'No'
+            ? 'Zone suspension not confirmed'
+            : 'Official zone suspension issued'
+          : readingValue,
       threshold: config.threshold,
-      daysTriggered: Math.min(Math.max(triggeredState.daysActive, 0), 2) || 2,
+      daysTriggered:
+        adminSimulation.triggerType === 'Curfew'
+          ? Math.max(triggeredState.daysActive, 0)
+          : Math.min(Math.max(triggeredState.daysActive, 0), 2) || 2,
       requiredDays: 2,
+      payoutAmount: payoutRate,
+      status: 'Active',
     })
   }
 
