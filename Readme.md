@@ -345,6 +345,42 @@ All fraud telemetry is logged with SHA-256 certificates per Bharatiya Sakshya Ad
 
 The architecture is asymmetric by design. Defeating any one layer is feasible. Defeating all five simultaneously within the 2-4 hour recovery window is not.
 
+
+## Coverage Exclusions
+
+GRIP covers one thing: income lost because an external, verifiable disruption made it 
+impossible to work. The following are permanently excluded from coverage under any 
+circumstance, consistent with IRDAI microinsurance regulations and standard 
+parametric product design:
+
+**War, Armed Conflict, and Civil Unrest Beyond Verified Zone Closures**
+Income loss arising from war, invasion, foreign military action, or widespread armed 
+civil conflict is excluded. Localised Section 144 curfews with verified platform zone 
+suspensions remain covered under Trigger 4.
+
+**Pandemic and Declared Public Health Emergencies**
+Income loss during a government-declared epidemic or pandemic is excluded. These 
+events create nationwide correlated risk that cannot be sustainably underwritten at 
+microinsurance premium levels. This exclusion aligns with post-COVID IRDAI guidance 
+on parametric product design.
+
+**Nuclear, Radiological, Biological, and Chemical Events**
+Any disruption caused by nuclear reaction, radiation, biological agents, or chemical 
+contamination is excluded, regardless of whether the cause is accidental or deliberate.
+
+**Platform-Initiated Policy Changes**
+Income reduction caused by Zomato or Swiggy changing commission structures, 
+incentive schemes, surge pricing algorithms, or partner deactivation decisions is 
+excluded. GRIP insures against external disruptions, not platform business decisions.
+
+**Pre-Existing Zone Restrictions**
+Locations that are under permanent or long-standing operational restrictions at the 
+time of policy enrollment are excluded from coverage for those specific restrictions. 
+New restrictions arising after enrollment remain covered under the applicable trigger.
+
+These exclusions are not limitations on the product's intent. They are the boundary 
+conditions that make the product financially sustainable and actuarially sound at a 
+Rs 49–74 weekly premium.
 ---
 
 ## Team Exogeneous
