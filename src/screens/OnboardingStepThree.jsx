@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, PrimaryButton } from '../components/ui'
 import { PageTransition } from '../components/PageTransition'
@@ -10,25 +10,11 @@ import { useGRIP } from '../context/GRIPContext'
 
 export function OnboardingStepThree() {
   const navigate = useNavigate()
-  const { onboardingForm, updateOnboardingField } = useGRIP()
+  const { onboardingForm, updateOnboardingField, submitRegistration } = useGRIP()
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    let timeoutId
-
-    if (isLoading) {
-      timeoutId = window.setTimeout(() => {
-        navigate('/onboarding/complete')
-      }, 1500)
-    }
-
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
-  }, [isLoading, navigate])
-
-  function handleContinue() {
+  async function handleContinue() {
     const nextErrors = {}
 
     if (!onboardingForm.upiId.trim()) nextErrors.upiId = 'This field is required'
@@ -49,6 +35,14 @@ export function OnboardingStepThree() {
     }
 
     setIsLoading(true)
+
+    try {
+      await submitRegistration()
+      navigate('/onboarding/complete')
+    } catch {
+      setErrors({ upiId: 'Registration failed. Please try again.' })
+      setIsLoading(false)
+    }
   }
 
   function updateField(field, value) {

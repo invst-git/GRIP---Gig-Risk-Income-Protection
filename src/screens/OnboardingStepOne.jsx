@@ -6,6 +6,7 @@ import { PageTransition } from '../components/PageTransition'
 import { InputField, PrimaryButton } from '../components/ui'
 import { cityOptions } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
+import { checkMobileExists } from '../services/registrationService'
 
 function sanitizeDigits(value, maxLength) {
   return value.replace(/\D/g, '').slice(0, maxLength)
@@ -24,7 +25,7 @@ export function OnboardingStepOne() {
     }))
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     const nextErrors = {}
 
     if (!onboardingForm.fullName.trim()) nextErrors.fullName = 'This field is required'
@@ -38,7 +39,18 @@ export function OnboardingStepOne() {
       return
     }
 
-    navigate('/onboarding/2')
+    try {
+      const alreadyExists = await checkMobileExists(onboardingForm.mobileNumber)
+
+      if (alreadyExists) {
+        setErrors({ mobileNumber: 'This number is already registered' })
+        return
+      }
+
+      navigate('/onboarding/2')
+    } catch {
+      setErrors({ mobileNumber: 'Unable to verify this number right now' })
+    }
   }
 
   return (

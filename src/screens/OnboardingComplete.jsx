@@ -21,7 +21,7 @@ function DetailRow({ label, value, hasDivider = true, valueClassName = '' }) {
 
 export function OnboardingComplete() {
   const navigate = useNavigate()
-  const { selectedPlan, profile } = useGRIP()
+  const { profile, registrationResult } = useGRIP()
 
   return (
     <PageTransition className="relative flex min-h-full flex-col justify-center overflow-x-hidden overflow-y-auto px-4 py-[clamp(24px,5vh,40px)] grip-radial-alert sm:px-5">
@@ -39,27 +39,32 @@ export function OnboardingComplete() {
           </h1>
           <p className="mx-auto max-w-[320px] text-[14px] leading-6 text-text-secondary">
             Your GRIP policy is now active. Your weekly premium of{' '}
-            {formatCurrency(selectedPlan.weeklyPremium)} will be auto-deducted every Monday
+            {formatCurrency(profile.weeklyPremium)} will be auto-deducted every Monday
             from your earnings.
           </p>
         </div>
 
         <Card className="relative z-10 space-y-4 border-white/80 text-left">
-          <DetailRow label="Coverage Tier" value={selectedPlan.name} valueClassName="text-accent-primary" />
-          <DetailRow label="Weekly Premium" value={formatCurrency(selectedPlan.weeklyPremium)} />
+          <DetailRow
+            label="Coverage Tier"
+            value={profile.coverageTier}
+            valueClassName="text-accent-primary"
+          />
+          <DetailRow label="Weekly Premium" value={formatCurrency(profile.weeklyPremium)} />
           <DetailRow
             label="Payout Per Disruption Day"
-            value={formatCurrency(selectedPlan.payoutPerDay)}
+            value={formatCurrency(profile.payoutPerDay)}
           />
           <DetailRow
             label="Weekly Payout Cap"
-            value={formatCurrency(selectedPlan.weeklyCap)}
+            value={formatCurrency(profile.weeklyCap)}
             hasDivider={false}
           />
         </Card>
 
         <p className="relative z-10 text-[12px] text-text-secondary">
-          Premium is dynamically priced based on your {profile.city} zone risk profile.
+          Premium dynamically priced. Your zone risk score:{' '}
+          {registrationResult?.zoneRiskScore ?? profile.zoneRiskScore}x
         </p>
 
         <PrimaryButton className="relative z-10" onClick={() => navigate('/dashboard')}>

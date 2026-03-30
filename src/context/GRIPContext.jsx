@@ -6,6 +6,7 @@ import {
   affectedPartnersByCity,
   partnerProfile,
 } from '../mockData'
+import { registerPartner } from '../services/registrationService'
 
 const GRIPContext = createContext(null)
 
@@ -35,29 +36,78 @@ function getPlanByName(planName) {
   return planOptions.find((plan) => plan.name === planName) ?? planOptions[1]
 }
 
+function formatEnrollmentDate(dateValue) {
+  if (!dateValue) return partnerProfile.enrolledSince
+
+  const parsedDate = new Date(dateValue)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return partnerProfile.enrolledSince
+  }
+
+  return parsedDate.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 export function GRIPProvider({ children }) {
   const [onboardingForm, setOnboardingForm] = useState(initialOnboardingForm)
   const [selectedPlanName, setSelectedPlanName] = useState('Standard')
   const [activeTrigger, setActiveTrigger] = useState(null)
   const [adminSimulation, setAdminSimulation] = useState(initialAdminSimulation)
   const [lastTriggeredSimulation, setLastTriggeredSimulation] = useState(null)
+  const [registrationResult, setRegistrationResult] = useState(null)
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [registrationError, setRegistrationError] = useState(null)
 
   const selectedPlan = getPlanByName(selectedPlanName)
+  const registeredPartner = registrationResult?.partner ?? null
+  const hasRegistrationForSelectedPlan =
+    (registeredPartner?.coverage_tier ?? selectedPlan.name) === selectedPlan.name
+  const profileWeeklyPremium = hasRegistrationForSelectedPlan
+    ? registrationResult?.weeklyPremium ?? registeredPartner?.weekly_premium
+    : selectedPlan.weeklyPremium
+  const profilePayoutPerDay = hasRegistrationForSelectedPlan
+    ? registeredPartner?.payout_per_day ?? selectedPlan.payoutPerDay
+    : selectedPlan.payoutPerDay
+  const profileWeeklyCap = hasRegistrationForSelectedPlan
+    ? registeredPartner?.weekly_cap ?? selectedPlan.weeklyCap
+    : selectedPlan.weeklyCap
+  const profileZoneRiskScore =
+    registrationResult?.zoneRiskScore ??
+    (registeredPartner?.zone_risk_score ? Number(registeredPartner.zone_risk_score) : null) ??
+    partnerProfile.zoneRiskScore
 
   const profile = {
     ...partnerProfile,
-    name: onboardingForm.fullName || partnerProfile.name,
-    city: onboardingForm.city || partnerProfile.city,
-    platform: onboardingForm.platform || partnerProfile.platform,
-    vehicleType: onboardingForm.vehicleType || partnerProfile.vehicleType,
-    zone: onboardingForm.operatingZone || partnerProfile.zone,
-    avgDailyOrders: Number(onboardingForm.avgDailyOrders || partnerProfile.avgDailyOrders),
-    avgDailyHours: Number(onboardingForm.avgDailyHours || partnerProfile.avgDailyHours),
-    upiId: onboardingForm.upiId || partnerProfile.upiId,
+    name: registeredPartner?.full_name || onboardingForm.fullName || partnerProfile.name,
+    city: registeredPartner?.city || onboardingForm.city || partnerProfile.city,
+    platform: registeredPartner?.platform || onboardingForm.platform || partnerProfile.platform,
+    vehicleType:
+      registeredPartner?.vehicle_type || onboardingForm.vehicleType || partnerProfile.vehicleType,
+    zone: registeredPartner?.operating_zone || onboardingForm.operatingZone || partnerProfile.zone,
+    avgDailyOrders: Number(
+      registeredPartner?.avg_daily_orders ??
+        onboardingForm.avgDailyOrders ??
+        partnerProfile.avgDailyOrders,
+    ),
+    avgDailyHours: Number(
+      registeredPartner?.avg_daily_hours ??
+        onboardingForm.avgDailyHours ??
+        partnerProfile.avgDailyHours,
+    ),
+    upiId: registeredPartner?.upi_id || onboardingForm.upiId || partnerProfile.upiId,
+    enrolledSince: registeredPartner
+      ? formatEnrollmentDate(registeredPartner.enrolled_since ?? registeredPartner.created_at)
+      : partnerProfile.enrolledSince,
+    policyNumber: registrationResult?.policyNumber || registeredPartner?.policy_number || partnerProfile.policyNumber,
     coverageTier: selectedPlan.name,
-    weeklyPremium: selectedPlan.weeklyPremium,
-    payoutPerDay: selectedPlan.payoutPerDay,
-    weeklyCap: selectedPlan.weeklyCap,
+    weeklyPremium: profileWeeklyPremium,
+    payoutPerDay: profilePayoutPerDay,
+    weeklyCap: profileWeeklyCap,
+    zoneRiskScore: profileZoneRiskScore,
   }
 
   const affectedPartners =
@@ -82,6 +132,22 @@ export function GRIPProvider({ children }) {
 
   function setSelectedPlan(planName) {
     setSelectedPlanName(planName)
+  }
+
+  async function submitRegistration() {
+    setIsRegistering(true)
+    setRegistrationError(null)
+
+    try {
+      const result = await registerPartner(onboardingForm, selectedPlanName)
+      setRegistrationResult(result)
+      return result
+    } catch (error) {
+      setRegistrationError(error.message)
+      throw error
+    } finally {
+      setIsRegistering(false)
+    }
   }
 
   function fireAdminTrigger() {
@@ -130,6 +196,10 @@ export function GRIPProvider({ children }) {
         selectedPlan,
         setSelectedPlan,
         profile,
+        submitRegistration,
+        registrationResult,
+        isRegistering,
+        registrationError,
         activeTrigger,
         setActiveTrigger,
         adminSimulation,

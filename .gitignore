@@ -10,6 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.venv/
+__pycache__/
+*.py[cod]
+ml-data/data/
+ml-data/models/
+.env
+.env.*
+!.env.example
 *.local
 
 # Editor directories and files
