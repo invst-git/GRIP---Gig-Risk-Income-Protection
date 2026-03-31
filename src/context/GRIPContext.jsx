@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { adminTriggerConfig, planOptions } from '../data/appData'
 import {
   activeTrigger as mockActiveTrigger,
@@ -36,6 +37,17 @@ function getPlanByName(planName) {
   return planOptions.find((plan) => plan.name === planName) ?? planOptions[1]
 }
 
+function getStoredRegistrationResult() {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const stored = window.sessionStorage.getItem('grip_partner')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 function formatEnrollmentDate(dateValue) {
   if (!dateValue) return partnerProfile.enrolledSince
 
@@ -53,14 +65,37 @@ function formatEnrollmentDate(dateValue) {
 }
 
 export function GRIPProvider({ children }) {
+  const navigate = useNavigate()
   const [onboardingForm, setOnboardingForm] = useState(initialOnboardingForm)
-  const [selectedPlanName, setSelectedPlanName] = useState('Standard')
+  const [registrationResult, setRegistrationResult] = useState(() =>
+    getStoredRegistrationResult(),
+  )
+  const [selectedPlanName, setSelectedPlanName] = useState(
+    () => getStoredRegistrationResult()?.partner?.coverage_tier ?? 'Standard',
+  )
   const [activeTrigger, setActiveTrigger] = useState(null)
   const [adminSimulation, setAdminSimulation] = useState(initialAdminSimulation)
   const [lastTriggeredSimulation, setLastTriggeredSimulation] = useState(null)
-  const [registrationResult, setRegistrationResult] = useState(null)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    if (registrationResult) {
+      window.sessionStorage.setItem('grip_partner', JSON.stringify(registrationResult))
+    } else {
+      window.sessionStorage.removeItem('grip_partner')
+    }
+  }, [registrationResult])
+
+  useEffect(() => {
+    const partnerTier = registrationResult?.partner?.coverage_tier
+
+    if (partnerTier) {
+      setSelectedPlanName(partnerTier)
+    }
+  }, [registrationResult?.partner?.id, registrationResult?.partner?.coverage_tier])
 
   const selectedPlan = getPlanByName(selectedPlanName)
   const registeredPartner = registrationResult?.partner ?? null
@@ -134,6 +169,21 @@ export function GRIPProvider({ children }) {
     setSelectedPlanName(planName)
   }
 
+  function logout() {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('grip_partner')
+    }
+
+    setRegistrationResult(null)
+    setSelectedPlanName('Standard')
+    setOnboardingForm(initialOnboardingForm)
+    setActiveTrigger(null)
+    setAdminSimulation(initialAdminSimulation)
+    setLastTriggeredSimulation(null)
+    setRegistrationError(null)
+    navigate('/')
+  }
+
   async function submitRegistration() {
     setIsRegistering(true)
     setRegistrationError(null)
@@ -198,8 +248,10 @@ export function GRIPProvider({ children }) {
         profile,
         submitRegistration,
         registrationResult,
+        setRegistrationResult,
         isRegistering,
         registrationError,
+        logout,
         activeTrigger,
         setActiveTrigger,
         adminSimulation,

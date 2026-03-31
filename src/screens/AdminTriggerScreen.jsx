@@ -6,13 +6,14 @@ import { WarningIcon } from '../components/icons'
 import { Card, InputField, PrimaryButton, SegmentedControl, StatusBadge } from '../components/ui'
 import { adminTriggerConfig, cityOptions } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
+import { useAnalyticsData } from '../hooks/useAnalyticsData'
 import { formatCurrency } from '../lib/utils'
 
-const triggerOptions = [
-  { label: 'AQI', value: 'AQI' },
-  { label: 'Rainfall', value: 'Rainfall' },
-  { label: 'Heatwave', value: 'Heatwave' },
-  { label: 'Curfew', value: 'Curfew' },
+const DEMO_TRIGGERS = [
+  { label: 'AQI', value: 'AQI', triggerType: 'aqi', overrideValue: 350, unit: 'AQI' },
+  { label: 'Rainfall', value: 'Rainfall', triggerType: 'rainfall', overrideValue: 120, unit: 'mm' },
+  { label: 'Heatwave', value: 'Heatwave', triggerType: 'heat', overrideValue: 44, unit: 'C' },
+  { label: 'Curfew', value: 'Curfew', triggerType: 'curfew', overrideValue: 1, unit: '' },
 ]
 
 const curfewConfirmationOptions = [
@@ -20,33 +21,96 @@ const curfewConfirmationOptions = [
   { label: 'No', value: 'No' },
 ]
 
+async function fireTrigger({ city, triggerType, overrideValue }) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/admin/fire-trigger?city=${encodeURIComponent(city)}&trigger_type=${encodeURIComponent(triggerType)}&override_value=${encodeURIComponent(overrideValue)}`,
+    { method: 'POST' },
+  )
+
+  if (!response.ok) {
+    throw new Error('Trigger failed')
+  }
+
+  return response.json()
+}
+
+function getCityWithMostPartners(partnersByCity) {
+  const entries = Object.entries(partnersByCity || {})
+
+  if (entries.length === 0) return null
+
+  return entries.sort((left, right) => right[1] - left[1])[0][0]
+}
+
 export function AdminTriggerScreen() {
   const navigate = useNavigate()
-  const {
-    adminSimulation,
-    updateAdminSimulation,
-    affectedPartners,
-    estimatedPayout,
-    fireAdminTrigger,
-  } = useGRIP()
+  const { data } = useAnalyticsData()
+  const { adminSimulation, updateAdminSimulation, fireAdminTrigger } = useGRIP()
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    let timeoutId
-
-    if (isLoading) {
-      timeoutId = window.setTimeout(() => {
-        fireAdminTrigger()
-        navigate('/admin/trigger-confirm')
-      }, 2000)
-    }
-
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
-  }, [fireAdminTrigger, isLoading, navigate])
+  const [error, setError] = useState(null)
+  const [hasInitializedCity, setHasInitializedCity] = useState(false)
 
   const triggerMeta = adminTriggerConfig[adminSimulation.triggerType]
+  const triggerConfig =
+    DEMO_TRIGGERS.find((item) => item.value === adminSimulation.triggerType) ?? DEMO_TRIGGERS[0]
+  const availableCities =
+    Object.keys(data?.partnersByCity || {}).length > 0
+      ? Object.keys(data.partnersByCity)
+      : cityOptions
+  const cityWithMostPartners = getCityWithMostPartners(data?.partnersByCity)
+  const affectedPartners = data?.partnersByCity?.[adminSimulation.city] ?? 0
+  const payoutRate = adminSimulation.triggerType === 'Curfew' ? 600 : 400
+  const estimatedPayout = affectedPartners * (Number(adminSimulation.daysActive) || 0) * payoutRate
+
+  useEffect(() => {
+    if (!hasInitializedCity && cityWithMostPartners) {
+      updateAdminSimulation('city', cityWithMostPartners)
+      setHasInitializedCity(true)
+    }
+  }, [cityWithMostPartners, hasInitializedCity, updateAdminSimulation])
+
+  async function handleFireTrigger() {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const overrideValue =
+        adminSimulation.triggerType === 'Curfew'
+          ? adminSimulation.readingValue === 'No'
+            ? 0
+            : 1
+          : Number(adminSimulation.readingValue) || triggerConfig.overrideValue
+
+      await fireTrigger({
+        city: adminSimulation.city,
+        triggerType: triggerConfig.triggerType,
+        overrideValue,
+      })
+
+      fireAdminTrigger()
+
+      const simulation = {
+        triggerType: adminSimulation.triggerType,
+        city: adminSimulation.city,
+        title: adminTriggerConfig[adminSimulation.triggerType].title,
+        affectedPartners,
+        estimatedPayout,
+        readingValue:
+          adminSimulation.triggerType === 'Curfew'
+            ? adminSimulation.readingValue || adminTriggerConfig.Curfew.defaultReading
+            : overrideValue,
+        daysActive: Number(adminSimulation.daysActive) || 0,
+      }
+
+      navigate('/admin/trigger-confirm', {
+        state: { simulation, showToast: true },
+      })
+    } catch (triggerError) {
+      setError(triggerError.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <PageTransition className="flex min-h-full flex-col">
@@ -71,17 +135,20 @@ export function AdminTriggerScreen() {
             </div>
           </Card>
 
+          {error ? (
+            <Card className="border-white/80">
+              <p className="text-[13px] text-accent-danger">{error}</p>
+            </Card>
+          ) : null}
+
           <div className="space-y-4">
             <SegmentedControl
               label="Trigger Type"
-              options={triggerOptions}
+              options={DEMO_TRIGGERS.map(({ label, value }) => ({ label, value }))}
               value={adminSimulation.triggerType}
               onChange={(value) => {
                 updateAdminSimulation('triggerType', value)
-                updateAdminSimulation(
-                  'readingValue',
-                  String(adminTriggerConfig[value].defaultReading),
-                )
+                updateAdminSimulation('readingValue', String(adminTriggerConfig[value].defaultReading))
               }}
             />
             <InputField
@@ -89,7 +156,7 @@ export function AdminTriggerScreen() {
               as="select"
               value={adminSimulation.city}
               onChange={(event) => updateAdminSimulation('city', event.target.value)}
-              options={cityOptions.map((city) => ({ label: city, value: city }))}
+              options={availableCities.map((city) => ({ label: city, value: city }))}
             />
             {adminSimulation.triggerType === 'Curfew' ? (
               <SegmentedControl
@@ -125,11 +192,7 @@ export function AdminTriggerScreen() {
                 )
               }
             />
-            <InputField
-              label="Affected Partners"
-              value={String(affectedPartners)}
-              readOnly
-            />
+            <InputField label="Affected Partners" value={String(affectedPartners)} readOnly />
             <InputField
               label="Estimated Payout"
               value={formatCurrency(estimatedPayout)}
@@ -141,7 +204,7 @@ export function AdminTriggerScreen() {
 
       <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
         <PrimaryButton
-          onClick={() => setIsLoading(true)}
+          onClick={handleFireTrigger}
           loading={isLoading}
           loadingText="Processing trigger..."
         >

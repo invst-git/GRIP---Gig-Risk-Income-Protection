@@ -1,6 +1,8 @@
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatedCheckmark } from '../components/AnimatedCheckmark'
 import { PageTransition } from '../components/PageTransition'
+import { Toast } from '../components/Toast'
 import { Card, PrimaryButton, ProgressBar, SecondaryButton } from '../components/ui'
 import { useGRIP } from '../context/GRIPContext'
 import { adminTriggerConfig } from '../data/appData'
@@ -17,10 +19,25 @@ function SummaryRow({ label, value }) {
 
 export function AdminTriggerConfirmScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { lastTriggeredSimulation, adminSimulation, affectedPartners, estimatedPayout } =
     useGRIP()
+  const [showToast, setShowToast] = useState(Boolean(location.state?.showToast))
+
+  useEffect(() => {
+    let timeoutId
+
+    if (showToast) {
+      timeoutId = window.setTimeout(() => setShowToast(false), 1600)
+    }
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [showToast])
 
   const simulation =
+    location.state?.simulation ??
     lastTriggeredSimulation ?? {
       ...adminSimulation,
       title: adminTriggerConfig[adminSimulation.triggerType].title,
@@ -86,6 +103,8 @@ export function AdminTriggerConfirmScreen() {
           </SecondaryButton>
         </div>
       </div>
+
+      <Toast message="Trigger fired successfully" visible={showToast} />
     </PageTransition>
   )
 }

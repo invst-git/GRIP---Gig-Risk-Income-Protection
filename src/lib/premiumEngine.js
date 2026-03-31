@@ -58,3 +58,46 @@ export function generatePolicyNumber(city) {
 
   return `GRIP-${cityCode}-${year}-${random}`
 }
+
+export async function fetchPremiumQuote(formData) {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/ml/premium-quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        city: formData.city,
+        zone: formData.operatingZone,
+        vehicle_type: formData.vehicleType,
+        platform: formData.platform,
+        season: getCurrentSeason(),
+        month: new Date().getMonth() + 1,
+        avg_daily_orders: Number(formData.avgDailyOrders),
+        avg_daily_hours: Number(formData.avgDailyHours),
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('API unavailable')
+    }
+
+    return await response.json()
+  } catch {
+    const zoneRiskScore = calculateZoneRiskScore(formData)
+
+    return {
+      zone_risk_score: zoneRiskScore,
+      weekly_premium_basic: calculateWeeklyPremium(zoneRiskScore, 1.0),
+      weekly_premium_standard: calculateWeeklyPremium(zoneRiskScore, 1.25),
+      weekly_premium_premium: calculateWeeklyPremium(zoneRiskScore, 1.5),
+    }
+  }
+}
+
+function getCurrentSeason() {
+  const month = new Date().getMonth() + 1
+
+  if ([3, 4, 5].includes(month)) return 'Pre-monsoon'
+  if ([6, 7, 8, 9].includes(month)) return 'Monsoon'
+  if ([10, 11].includes(month)) return 'Post-monsoon'
+  return 'Winter'
+}

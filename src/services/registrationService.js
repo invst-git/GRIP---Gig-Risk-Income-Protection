@@ -1,25 +1,18 @@
 import { supabase } from '../lib/supabase'
-import {
-  calculateWeeklyPremium,
-  calculateZoneRiskScore,
-  generatePolicyNumber,
-} from '../lib/premiumEngine'
+import { fetchPremiumQuote, generatePolicyNumber } from '../lib/premiumEngine'
 
-const TIER_MULTIPLIERS = { Basic: 1.0, Standard: 1.25, Premium: 1.5 }
+const TIER_PREMIUM_KEYS = {
+  Basic: 'weekly_premium_basic',
+  Standard: 'weekly_premium_standard',
+  Premium: 'weekly_premium_premium',
+}
 const TIER_PAYOUTS = { Basic: 300, Standard: 400, Premium: 500 }
 const TIER_CAPS = { Basic: 900, Standard: 1200, Premium: 1500 }
 
 export async function registerPartner(formData, selectedPlanName = 'Standard') {
-  const zoneRiskScore = calculateZoneRiskScore({
-    city: formData.city,
-    operatingZone: formData.operatingZone,
-    vehicleType: formData.vehicleType,
-    avgDailyOrders: Number(formData.avgDailyOrders),
-    avgDailyHours: Number(formData.avgDailyHours),
-  })
-
-  const tierMultiplier = TIER_MULTIPLIERS[selectedPlanName]
-  const weeklyPremium = calculateWeeklyPremium(zoneRiskScore, tierMultiplier)
+  const premiumQuote = await fetchPremiumQuote(formData)
+  const zoneRiskScore = premiumQuote.zone_risk_score
+  const weeklyPremium = premiumQuote[TIER_PREMIUM_KEYS[selectedPlanName]]
   const policyNumber = generatePolicyNumber(formData.city)
 
   const nextPremiumDate = new Date()

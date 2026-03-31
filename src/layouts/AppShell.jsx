@@ -4,9 +4,12 @@ import { AdminDashboardScreen } from '../screens/AdminDashboardScreen'
 import { AdminTriggerConfirmScreen } from '../screens/AdminTriggerConfirmScreen'
 import { AdminTriggerScreen } from '../screens/AdminTriggerScreen'
 import { BottomNavBar } from '../components/BottomNavBar'
+import RequireAuth from '../components/RequireAuth'
 import { cn } from '../lib/utils'
 import { DashboardScreen } from '../screens/DashboardScreen'
+import Login from '../screens/Login'
 import { OnboardingComplete } from '../screens/OnboardingComplete'
+import OnboardingExclusions from '../screens/OnboardingExclusions'
 import { OnboardingStepOne } from '../screens/OnboardingStepOne'
 import { OnboardingStepThree } from '../screens/OnboardingStepThree'
 import { OnboardingStepTwo } from '../screens/OnboardingStepTwo'
@@ -18,18 +21,24 @@ import { ScreenStub } from '../screens/ScreenStub'
 import { SplashScreen } from '../screens/SplashScreen'
 import { TriggerAlertScreen } from '../screens/TriggerAlertScreen'
 
+function protect(element) {
+  return <RequireAuth>{element}</RequireAuth>
+}
+
 const routes = [
   { path: '/', element: <SplashScreen /> },
+  { path: '/login', element: <Login /> },
   { path: '/onboarding/1', element: <OnboardingStepOne /> },
   { path: '/onboarding/2', element: <OnboardingStepTwo /> },
   { path: '/onboarding/3', element: <OnboardingStepThree /> },
+  { path: '/onboarding/exclusions', element: <OnboardingExclusions /> },
   { path: '/onboarding/complete', element: <OnboardingComplete /> },
-  { path: '/dashboard', element: <DashboardScreen /> },
-  { path: '/policy', element: <PolicySelectionScreen /> },
-  { path: '/policy/active', element: <PolicyActiveScreen /> },
-  { path: '/payouts', element: <PayoutHistoryScreen /> },
-  { path: '/payouts/detail', element: <PayoutDetailScreen /> },
-  { path: '/trigger-alert', element: <TriggerAlertScreen /> },
+  { path: '/dashboard', element: protect(<DashboardScreen />) },
+  { path: '/policy', element: protect(<PolicySelectionScreen />) },
+  { path: '/policy/active', element: protect(<PolicyActiveScreen />) },
+  { path: '/payouts', element: protect(<PayoutHistoryScreen />) },
+  { path: '/payouts/detail', element: protect(<PayoutDetailScreen />) },
+  { path: '/trigger-alert', element: protect(<TriggerAlertScreen />) },
   { path: '/admin/dashboard', element: <AdminDashboardScreen /> },
   { path: '/admin/trigger', element: <AdminTriggerScreen /> },
   { path: '/admin/trigger-confirm', element: <AdminTriggerConfirmScreen /> },

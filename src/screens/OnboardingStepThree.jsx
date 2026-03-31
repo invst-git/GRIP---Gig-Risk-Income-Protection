@@ -38,7 +38,7 @@ export function OnboardingStepThree() {
 
     try {
       await submitRegistration()
-      navigate('/onboarding/complete')
+      navigate('/onboarding/exclusions')
     } catch {
       setErrors({ upiId: 'Registration failed. Please try again.' })
       setIsLoading(false)

@@ -5,23 +5,61 @@ import { ChevronLeftIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
 import { pulseAnimation } from '../lib/animations'
 import { useGRIP } from '../context/GRIPContext'
-import { activeTrigger as mockActiveTrigger } from '../mockData'
+import { useClaimsData } from '../hooks/useClaimsData'
 import { formatCurrency } from '../lib/utils'
 
 const MotionPulse = motion.span
 
+function normalizeRelation(value) {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
+function formatTriggerType(triggerType) {
+  const normalizedType = String(triggerType || '').toLowerCase()
+
+  if (normalizedType === 'aqi') return 'AQI'
+  if (normalizedType === 'rainfall') return 'Rainfall'
+  if (normalizedType === 'heat') return 'Heat'
+  if (normalizedType === 'curfew') return 'Curfew'
+  return 'Trigger'
+}
+
+function formatStatusLabel(status) {
+  return String(status || 'monitoring')
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
+}
+
 function getAlertCopy(trigger) {
-  if (trigger.type === 'Curfew') {
+  if (String(trigger.type).toLowerCase() === 'curfew') {
     return `${trigger.zone}, ${trigger.city} is under an official suspension. Your payout is being processed automatically.`
   }
 
-  return `A qualifying ${trigger.type.toLowerCase()} trigger has been confirmed in ${trigger.zone}, ${trigger.city}. Your payout is being processed automatically.`
+  return `A qualifying ${String(trigger.type).toLowerCase()} trigger has been confirmed in ${trigger.zone}, ${trigger.city}. Your payout is being processed automatically.`
 }
 
 export function TriggerAlertScreen() {
   const navigate = useNavigate()
-  const { activeTrigger } = useGRIP()
-  const trigger = activeTrigger ?? mockActiveTrigger
+  const { activeTrigger, profile, registrationResult } = useGRIP()
+  const { claims } = useClaimsData()
+  const latestClaim = claims.find((claim) => claim.status !== 'paid') ?? claims[0] ?? null
+  const latestTriggerEvent = normalizeRelation(latestClaim?.trigger_events)
+  const fallbackCity = registrationResult?.partner?.city || profile.city || 'your city'
+  const fallbackZone = registrationResult?.partner?.operating_zone || profile.zone || 'your zone'
+  const trigger = activeTrigger
+    ? activeTrigger
+    : {
+        type: formatTriggerType(latestClaim?.trigger_type),
+        city: latestTriggerEvent?.city || fallbackCity,
+        zone: fallbackZone,
+        reading: latestTriggerEvent?.raw_value ?? 'Awaiting data',
+        orderVolumeDrop: 'Auto-calculated',
+        payoutAmount: latestClaim?.payout_amount ?? 0,
+        daysTriggered: latestClaim ? 1 : 0,
+        status: formatStatusLabel(latestClaim?.status),
+      }
   const payoutAmount = (trigger.payoutAmount ?? 0) * (trigger.daysTriggered ?? 0)
 
   return (
@@ -75,7 +113,7 @@ export function TriggerAlertScreen() {
             <div className="flex items-center justify-between gap-4">
               <p className="text-[13px] text-text-secondary">Days Triggered</p>
               <p className="text-[14px] font-semibold text-text-primary">
-                {trigger.type === 'Curfew'
+                {String(trigger.type).toLowerCase() === 'curfew'
                   ? `${trigger.daysTriggered} day confirmed`
                   : `${trigger.daysTriggered} of required 2`}
               </p>

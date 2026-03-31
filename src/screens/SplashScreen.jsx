@@ -60,12 +60,17 @@ export function SplashScreen() {
         }}
       >
         <div className="mx-auto w-full max-w-[360px] space-y-3 rounded-[28px] border border-white/70 bg-bg-surface/70 p-4 shadow-card backdrop-blur-md">
-          <PrimaryButton onClick={() => navigate('/onboarding/1')}>
-            I am a Delivery Partner
-          </PrimaryButton>
-          <SecondaryButton onClick={() => navigate('/admin/dashboard')}>
-            Admin Login
+          <PrimaryButton onClick={() => navigate('/onboarding/1')}>Get Started</PrimaryButton>
+          <SecondaryButton onClick={() => navigate('/login')}>
+            I already have a policy
           </SecondaryButton>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/dashboard')}
+            className="w-full py-2 text-center text-[12px] text-text-secondary"
+          >
+            Admin Login
+          </button>
         </div>
         <p className="px-2 text-center text-[12px] text-text-secondary">
           Parametric income protection for India&apos;s gig workers

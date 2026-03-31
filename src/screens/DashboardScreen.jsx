@@ -3,10 +3,10 @@ import { BellIcon, DotIcon, WarningIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
 import { StaggerGroup } from '../components/StaggerGroup'
 import { Card, ProgressBar, StatusBadge } from '../components/ui'
-import { recentActivity, riskSnapshot } from '../data/appData'
+import { riskSnapshot } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
-import { activeTrigger as mockActiveTrigger } from '../mockData'
-import { formatCurrency, formatSignedCurrency } from '../lib/utils'
+import { useClaimsData } from '../hooks/useClaimsData'
+import { formatCurrency } from '../lib/utils'
 
 function StatPill({ label, value }) {
   return (
@@ -17,10 +17,75 @@ function StatPill({ label, value }) {
   )
 }
 
+function normalizeRelation(value) {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
+function formatDate(dateValue) {
+  if (!dateValue) return 'Unavailable'
+
+  const parsedDate = new Date(dateValue)
+  if (Number.isNaN(parsedDate.getTime())) return 'Unavailable'
+
+  return parsedDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function formatTriggerType(triggerType) {
+  const normalizedType = String(triggerType || '').toLowerCase()
+
+  if (normalizedType === 'aqi') return 'AQI'
+  if (normalizedType === 'rainfall') return 'Rainfall'
+  if (normalizedType === 'heat') return 'Heat'
+  if (normalizedType === 'curfew') return 'Curfew'
+  return 'Trigger'
+}
+
+function formatStatusLabel(status) {
+  return String(status || 'pending')
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ')
+}
+
+function getStatusTone(status) {
+  switch (status) {
+    case 'paid':
+      return 'paid'
+    case 'approved':
+      return 'pending'
+    case 'fraud_review':
+    case 'rejected':
+      return 'triggered'
+    default:
+      return 'neutral'
+  }
+}
+
 export function DashboardScreen() {
   const navigate = useNavigate()
-  const { profile, activeTrigger } = useGRIP()
-  const bellTrigger = activeTrigger ?? mockActiveTrigger
+  const { registrationResult, profile, activeTrigger } = useGRIP()
+  const { claims, loading } = useClaimsData()
+  const city = registrationResult?.partner?.city || profile?.city || 'your city'
+  const dynamicRiskSnapshot = [
+    {
+      ...riskSnapshot[0],
+      label: `AQI Risk (${city}, Oct-Jan)`,
+    },
+    {
+      ...riskSnapshot[1],
+      label: `Flood Risk (${city})`,
+    },
+    {
+      ...riskSnapshot[2],
+      label: `Heat Risk (${city}, Apr-Jun)`,
+    },
+  ]
+  const recentClaims = claims.slice(0, 3)
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-hidden">
@@ -39,7 +104,7 @@ export function DashboardScreen() {
           aria-label="Open trigger alerts"
         >
           <BellIcon className="h-5 w-5" />
-          {bellTrigger.status === 'Active' ? (
+          {activeTrigger?.status === 'Active' ? (
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent-danger" />
           ) : null}
         </button>
@@ -89,11 +154,11 @@ export function DashboardScreen() {
               Your Risk Snapshot
             </h3>
             <Card className="space-y-5 border-white/80">
-              {riskSnapshot.map((item, index) => (
+              {dynamicRiskSnapshot.map((item, index) => (
                 <div
                   key={item.label}
                   className={
-                    index < riskSnapshot.length - 1
+                    index < dynamicRiskSnapshot.length - 1
                       ? 'border-b border-border-default pb-5'
                       : ''
                   }
@@ -113,38 +178,50 @@ export function DashboardScreen() {
           <section className="space-y-3">
             <h3 className="text-[15px] font-semibold text-text-primary">Recent Activity</h3>
             <div className="space-y-3">
-              {recentActivity.map((activity) => (
-                <button
-                  key={activity.id}
-                  type="button"
-                  className="w-full text-left"
-                  onClick={() => navigate('/payouts/detail')}
-                >
-                  <Card className="flex items-center justify-between gap-3 border-white/80">
-                    <div className="space-y-1">
-                      <p className="text-[14px] font-semibold text-text-primary">
-                        {activity.title}
-                      </p>
-                      <p className="text-[12px] text-text-secondary">{activity.date}</p>
-                    </div>
+              {recentClaims.map((claim) => {
+                const payout = normalizeRelation(claim.payouts)
+                const triggerEvent = normalizeRelation(claim.trigger_events)
+                const amount = payout?.amount || claim.payout_amount
 
-                    <div className="space-y-2 text-right">
-                      <p
-                        className={`text-[15px] font-semibold ${
-                          activity.amount > 0 ? 'text-accent-success' : 'text-text-secondary'
-                        }`}
-                      >
-                        {formatSignedCurrency(activity.amount)}
-                      </p>
-                      <StatusBadge
-                        status={activity.badge.status}
-                        label={activity.badge.label}
-                        showCheck={activity.badge.status === 'paid'}
-                      />
-                    </div>
-                  </Card>
-                </button>
-              ))}
+                return (
+                  <button
+                    key={claim.id}
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => navigate('/payouts/detail', { state: { claimId: claim.id } })}
+                  >
+                    <Card className="flex items-center justify-between gap-3 border-white/80">
+                      <div className="space-y-1">
+                        <p className="text-[14px] font-semibold text-text-primary">
+                          {`${formatTriggerType(claim.trigger_type)} Trigger Fired - ${
+                            triggerEvent?.city || city
+                          }`}
+                        </p>
+                        <p className="text-[12px] text-text-secondary">
+                          {formatDate(claim.created_at)}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <p className="text-[15px] font-semibold text-accent-success">
+                          {`+${formatCurrency(amount)}`}
+                        </p>
+                        <StatusBadge
+                          status={getStatusTone(claim.status)}
+                          label={formatStatusLabel(claim.status)}
+                          showCheck={claim.status === 'paid'}
+                        />
+                      </div>
+                    </Card>
+                  </button>
+                )
+              })}
+
+              {claims.length === 0 && !loading ? (
+                <p className="py-4 text-center text-sm text-text-secondary">
+                  No activity yet. Claims appear here automatically when a trigger fires.
+                </p>
+              ) : null}
             </div>
           </section>
 

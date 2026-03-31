@@ -187,7 +187,7 @@ def compute_zone_risk_score(row: dict) -> float:
     for htype, weight in HAZARD_WEIGHTS.items():
         season_key = htype.replace("_days", "")   # "heat", "rain", "aqi"
         seasonal_w = SEASON_WEATHER_WEIGHTS[season_key][month - 1]
-        normalised = (h[htype] * seasonal_w) / HAZARD_MAX[htype]
+        normalised = min(1.0, (h[htype] * seasonal_w) / HAZARD_MAX[htype])
         city_hazard += normalised * weight
 
     # Zone flood component: independent of city weather
