@@ -72,19 +72,21 @@ def _simulate_order_drop(city: str, trigger_type: str) -> float:
 
 
 async def get_curfew_status(city: str, supabase) -> float:
-    """Returns 1.0 if curfew is active for the city, 0.0 otherwise."""
-    result = (
-        supabase.table("curfew_flags")
-        .select("is_active, zone")
-        .eq("city", city)
-        .single()
-        .execute()
-    )
-
-    if result.data and result.data.get("is_active"):
-        return 1.0
-
-    return 0.0
+    """Returns 1.0 if curfew active for city, 0.0 otherwise.
+    Returns 0.0 safely if no row exists rather than raising."""
+    try:
+        result = (
+            supabase.table("curfew_flags")
+            .select("is_active, zone")
+            .eq("city", city)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return 1.0 if result.data[0].get("is_active") else 0.0
+        return 0.0
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[TriggerEngine] Curfew check failed for {city}: {e}")
+        return 0.0
 
 
 async def evaluate_city(city: str):

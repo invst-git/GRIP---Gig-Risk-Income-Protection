@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageTransition } from '../components/PageTransition'
 import { GRIPLogo, PrimaryButton, SecondaryButton } from '../components/ui'
@@ -7,10 +8,75 @@ const MotionBlock = motion.div
 
 export function SplashScreen() {
   const navigate = useNavigate()
+  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-x-hidden overflow-y-auto px-4 py-[clamp(24px,6vh,40px)] sm:px-5">
       <div className="pointer-events-none absolute inset-x-0 top-10 z-0 mx-auto h-[clamp(220px,58vw,288px)] w-[clamp(220px,58vw,288px)] rounded-full grip-soft-orb" />
+
+      <div className="relative z-10 mx-auto w-full max-w-[390px] px-4 pt-4">
+        <button
+          type="button"
+          onClick={() => setNoteOpen(!noteOpen)}
+          className="flex w-full items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-left transition-all"
+        >
+          <span className="text-base text-amber-500">●</span>
+          <span className="flex-1 text-xs font-medium text-amber-700">
+            Demo credentials - tap to {noteOpen ? 'hide' : 'view'}
+          </span>
+          <span className="text-xs text-amber-400">{noteOpen ? '▲' : '▼'}</span>
+        </button>
+
+        {noteOpen ? (
+          <div className="mt-1 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+            <div>
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-amber-600">
+                Returning partner login
+              </p>
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span className="text-xs text-amber-800">Mobile</span>
+                  <span className="font-mono text-xs font-medium text-amber-900">
+                    [registered mobile]
+                  </span>
+                </div>
+              </div>
+              <p className="mt-1 text-[10px] text-amber-500">
+                Use any mobile number you registered during demo onboarding
+              </p>
+            </div>
+
+            <div className="border-t border-amber-200" />
+
+            <div>
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-amber-600">
+                New partner signup - test data
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {[
+                  { label: 'Mobile', value: '9000000001' },
+                  { label: 'OTP', value: '1234' },
+                  { label: 'PAN', value: 'RISHI1234P' },
+                  { label: 'DL', value: 'MH0520180034521' },
+                  { label: 'RC', value: 'MH5SBJ7823' },
+                  { label: 'DOB', value: '1999-03-12' },
+                  { label: 'IFSC', value: 'SBIN0001234' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="w-16 text-xs text-amber-800">{label}</span>
+                    <span className="rounded-md bg-amber-100 px-2 py-0.5 font-mono text-xs font-medium text-amber-900">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-amber-500">
+                Name: Rishi Verma · City: Mumbai · Vehicle: Two-Wheeler ICE
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <div className="flex flex-1 flex-col justify-center gap-[clamp(28px,7vh,48px)]">
         <MotionBlock
