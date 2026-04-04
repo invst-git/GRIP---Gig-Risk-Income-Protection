@@ -9,20 +9,76 @@ import { Card, PrimaryButton, SecondaryButton, StatusBadge } from '../components
 import { planOptions } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
 import { formatCurrency } from '../lib/utils'
+import { updatePartnerPlan } from '../services/registrationService'
 
 const MotionOverlay = motion.div
 const MotionSheet = motion.div
+const TIER_PAYOUTS = { Basic: 300, Standard: 400, Premium: 500 }
+const TIER_CAPS = { Basic: 900, Standard: 1200, Premium: 1500 }
 
 export function PolicySelectionScreen() {
   const navigate = useNavigate()
-  const { selectedPlan, setSelectedPlan } = useGRIP()
+  const { selectedPlan, setSelectedPlan, registrationResult, setRegistrationResult } = useGRIP()
   const [pendingPlan, setPendingPlan] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  function handleConfirm() {
+  const partner = registrationResult?.partner
+  const zoneRiskScore = Number(partner?.zone_risk_score) || 1
+  const policyId = registrationResult?.policy?.id
+  const displayPlans = planOptions.map((plan) => ({
+    ...plan,
+    weeklyPremium: Math.round(
+      49 *
+        zoneRiskScore *
+        { Basic: 1.0, Standard: 1.25, Premium: 1.5 }[plan.name],
+    ),
+    payoutPerDay: TIER_PAYOUTS[plan.name],
+    weeklyCap: TIER_CAPS[plan.name],
+  }))
+
+  async function handleConfirm() {
     if (!pendingPlan) return
-    setSelectedPlan(pendingPlan.name)
-    setPendingPlan(null)
-    navigate('/policy/active')
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const partnerId = registrationResult?.partner?.id
+
+      if (!partnerId) {
+        throw new Error('Partner context missing')
+      }
+
+      const result = await updatePartnerPlan(partnerId, policyId, pendingPlan.name)
+
+      setSelectedPlan(pendingPlan.name)
+      setRegistrationResult((current) => ({
+        ...(current ?? {}),
+        weeklyPremium: result.weeklyPremium,
+        policy: {
+          ...(current?.policy ?? {}),
+          id: result.policyId,
+          coverage_tier: pendingPlan.name,
+          weekly_premium: result.weeklyPremium,
+          payout_per_day: result.payoutPerDay,
+          weekly_cap: result.weeklyCap,
+        },
+        partner: {
+          ...(current?.partner ?? {}),
+          coverage_tier: pendingPlan.name,
+          weekly_premium: result.weeklyPremium,
+          payout_per_day: result.payoutPerDay,
+          weekly_cap: result.weeklyCap,
+        },
+      }))
+
+      setPendingPlan(null)
+      navigate('/policy')
+    } catch {
+      setError('Plan update failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -41,7 +97,7 @@ export function PolicySelectionScreen() {
           </div>
 
           <StaggerGroup className="space-y-6">
-            {planOptions.map((plan) => {
+            {displayPlans.map((plan) => {
               const isStandard = plan.name === 'Standard'
               const isCurrent = selectedPlan.name === plan.name
               const ButtonComponent = isStandard ? PrimaryButton : SecondaryButton
@@ -86,13 +142,18 @@ export function PolicySelectionScreen() {
                     ))}
                   </div>
 
-                  <ButtonComponent onClick={() => setPendingPlan(plan)}>
+                  <ButtonComponent onClick={() => setPendingPlan(plan)} disabled={isLoading}>
                     {`Select ${plan.name}`}
                   </ButtonComponent>
                 </Card>
               )
             })}
           </StaggerGroup>
+          {error ? (
+            <Card className="border-white/80">
+              <p className="text-[13px] text-accent-danger">{error}</p>
+            </Card>
+          ) : null}
         </div>
       </div>
 
@@ -126,7 +187,13 @@ export function PolicySelectionScreen() {
                     {formatCurrency(pendingPlan.payoutPerDay)} per disruption day.
                   </p>
                 </div>
-                <PrimaryButton onClick={handleConfirm}>Confirm</PrimaryButton>
+                <PrimaryButton
+                  onClick={handleConfirm}
+                  loading={isLoading}
+                  loadingText="Updating plan..."
+                >
+                  Confirm
+                </PrimaryButton>
               </div>
             </MotionSheet>
           </>

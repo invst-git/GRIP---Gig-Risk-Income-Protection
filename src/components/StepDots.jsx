@@ -1,9 +1,9 @@
 import { cn } from '../lib/utils'
 
-export function StepDots({ activeStep }) {
+export function StepDots({ activeStep, totalSteps = 3 }) {
   return (
     <div className="mt-5 flex items-center justify-center gap-2">
-      {[1, 2, 3].map((step) => (
+      {Array.from({ length: totalSteps }, (_, index) => index + 1).map((step) => (
         <span
           key={step}
           className={cn(

@@ -23,8 +23,8 @@ const navItems = [
   },
   {
     label: 'Profile',
-    to: '/policy/active',
-    match: [],
+    to: '/profile',
+    match: ['/profile'],
     icon: UserIcon,
   },
 ]

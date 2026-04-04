@@ -134,7 +134,7 @@ function ErrorState({ message }) {
 export function PayoutDetailScreen() {
   const location = useLocation()
   const { claimId: claimIdParam } = useParams()
-  const { profile } = useGRIP()
+  const { profile, registrationResult } = useGRIP()
   const [showToast, setShowToast] = useState(false)
   const [claim, setClaim] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -195,6 +195,12 @@ export function PayoutDetailScreen() {
 
   const payout = normalizeRelation(claim?.payouts)
   const triggerEvent = normalizeRelation(claim?.trigger_events)
+  const partner = registrationResult?.partner ?? {
+    full_name: profile.name,
+    policy_number: profile.policyNumber,
+    upi_id: profile.upiId,
+    city: profile.city,
+  }
   const amountPaid = payout?.amount ?? claim?.payout_amount ?? 0
   const timeline = [
     {
@@ -225,10 +231,62 @@ export function PayoutDetailScreen() {
       title: payout ? 'Payout settled' : 'Payout pending',
       date: formatDateTime(payout?.settled_at ?? claim?.resolved_at ?? claim?.created_at),
       description: payout
-        ? `${formatCurrency(amountPaid)} sent to ${profile.upiId}. Reference ${payout.razorpay_payout_id}.`
+        ? `${formatCurrency(amountPaid)} sent to ${partner?.upi_id}. Reference ${payout.razorpay_payout_id}.`
         : 'Payout has not been settled yet.',
     },
   ]
+
+  function handleDownloadReceipt() {
+    const receiptLines = [
+      '========================================',
+      '         GRIP CLAIM RECEIPT',
+      '========================================',
+      '',
+      `Claim Number    : ${claim?.claim_number}`,
+      `Policy Number   : ${partner?.policy_number}`,
+      `Partner Name    : ${partner?.full_name}`,
+      `UPI ID          : ${partner?.upi_id}`,
+      '',
+      `Trigger Type    : ${claim?.trigger_type?.toUpperCase()}`,
+      `Trigger City    : ${triggerEvent?.city || partner?.city}`,
+      `Claim Status    : ${claim?.status?.toUpperCase()}`,
+      '',
+      `Payout Amount   : Rs ${payout?.amount ?? amountPaid}`,
+      `Payout ID       : ${payout?.razorpay_payout_id}`,
+      `Settlement Date : ${
+        payout?.settled_at
+          ? new Date(payout.settled_at).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : 'Pending'
+      }`,
+      '',
+      `First Payout Cap Applied : ${
+        payout?.is_first_payout ? 'Yes (Rs 4,000 cap)' : 'No'
+      }`,
+      '',
+      '========================================',
+      'This is a system-generated receipt.',
+      'GRIP - Gig Risk Income Protection',
+      '========================================',
+    ]
+
+    const receiptText = receiptLines.join('\n')
+    const blob = new Blob([receiptText], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `GRIP_Receipt_${claim?.claim_number}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setShowToast(true)
+  }
 
   return (
     <PageTransition className="flex min-h-full flex-col">
@@ -243,7 +301,7 @@ export function PayoutDetailScreen() {
             <p className="text-[14px] text-text-secondary">
               {payout ? 'Paid to your UPI' : 'Awaiting payout'}
             </p>
-            <p className="text-[14px] text-text-primary">{profile.upiId}</p>
+            <p className="text-[14px] text-text-primary">{partner?.upi_id}</p>
           </div>
 
           <Card className="space-y-5">
@@ -308,7 +366,7 @@ export function PayoutDetailScreen() {
       </div>
 
       <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
-        <SecondaryButton onClick={() => setShowToast(true)}>Download Receipt</SecondaryButton>
+        <SecondaryButton onClick={handleDownloadReceipt}>Download Receipt</SecondaryButton>
       </div>
 
       <Toast message="Receipt downloaded" visible={showToast} />

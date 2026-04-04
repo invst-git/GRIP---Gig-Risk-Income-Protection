@@ -1,10 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import ml
+from .routers import kyc, ml
 from .services.claim_service import create_claims_for_trigger, get_supabase
 from .trigger_config import TRIGGERS
 from .trigger_engine import start_trigger_engine
@@ -44,6 +45,144 @@ app.add_middleware(
 )
 
 app.include_router(ml.router, prefix="/ml", tags=["ML"])
+app.include_router(kyc.router, prefix="/kyc", tags=["KYC"])
+
+
+@app.post("/admin/set-curfew")
+async def set_curfew(city: str, active: bool):
+    supabase = get_supabase()
+    supabase.table("curfew_flags").update(
+        {
+            "is_active": active,
+            "updated_at": datetime.now(UTC).isoformat(),
+        },
+    ).eq("city", city).execute()
+    return {"city": city, "curfew_active": active}
+
+
+@app.post("/admin/fire-fraud-claim")
+async def fire_fraud_claim(
+    city: str = "Delhi",
+    trigger_type: str = "aqi",
+    override_value: float = 350.0,
+):
+    """
+    Creates a claim with fraud-positive feature values for demo and testing.
+    Status will be fraud_review. No payout is created.
+    trigger_type and override_value are passed in - nothing hardcoded.
+    """
+    import os
+    import random
+
+    import httpx
+    from supabase import create_client
+
+    if trigger_type not in TRIGGERS:
+        return {"error": f"Unknown trigger_type: {trigger_type}"}
+
+    supabase = create_client(
+        os.getenv("SUPABASE_URL"),
+        os.getenv("SUPABASE_SERVICE_KEY"),
+    )
+
+    partner_result = (
+        supabase.table("partners")
+        .select("*, policies(*)")
+        .eq("city", city)
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+    )
+
+    if not partner_result.data:
+        return {"error": f"No active partners in {city}"}
+
+    partner = partner_result.data[0]
+    policy = next((item for item in partner.get("policies", []) if item["status"] == "active"), None)
+    if not policy:
+        return {"error": "No active policy found"}
+
+    fraud_features = {
+        "claim_lag_hours": 2.1,
+        "prior_orders_48h": 1,
+        "claim_hour": 20,
+        "prior_claims_30d": 8,
+        "device_returning": 0,
+        "zone_match": 0,
+        "device_tampered": 1,
+        "nocturnal_fraction": 0.72,
+        "cancellation_ratio": 0.48,
+        "network_reuse_count": 14,
+        "fnol_last_trip_delta_hours": 72.0,
+        "activity_kl_divergence": 0.95,
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        fraud_resp = await client.post(
+            "http://localhost:8000/ml/fraud-score",
+            json=fraud_features,
+        )
+        fraud_resp.raise_for_status()
+        fraud_result = fraud_resp.json()
+
+    trigger_result = (
+        supabase.table("trigger_events")
+        .insert(
+            {
+                "trigger_type": trigger_type,
+                "city": city,
+                "raw_value": override_value,
+                "threshold": TRIGGERS[trigger_type]["threshold"],
+                "confirmed": True,
+                "data_source": "Manual",
+                "quality_flag": "estimated",
+                "metadata": {"demo_fraud_test": True},
+            },
+        )
+        .execute()
+    )
+    trigger_event = _get_inserted_row(trigger_result)
+    if not trigger_event:
+        return {"error": "Trigger event insert returned no data"}
+
+    claim_number = (
+        f"CLM-FRAUD-{city[:2].upper()}-"
+        f"{datetime.utcnow().strftime('%Y%m%d')}-"
+        f"{random.randint(100000, 999999)}"
+    )
+
+    claim_result = (
+        supabase.table("claims")
+        .insert(
+            {
+                "partner_id": partner["id"],
+                "policy_id": policy["id"],
+                "trigger_event_id": trigger_event["id"],
+                "claim_number": claim_number,
+                "trigger_type": trigger_type,
+                "status": "fraud_review",
+                "payout_amount": policy["payout_per_day"],
+                "fraud_flag": True,
+                "anomaly_score": fraud_result["anomaly_score"],
+                "auto_approved": False,
+            },
+        )
+        .execute()
+    )
+    claim = _get_inserted_row(claim_result)
+    if not claim:
+        return {"error": "Claim insert returned no data"}
+
+    return {
+        "status": "fraud_claim_created",
+        "claim_number": claim_number,
+        "trigger_type": trigger_type,
+        "city": city,
+        "fraud_flag": True,
+        "anomaly_score": fraud_result["anomaly_score"],
+        "confidence": fraud_result["confidence"],
+        "claim_id": claim["id"],
+    }
 
 
 @app.post("/admin/fire-trigger")

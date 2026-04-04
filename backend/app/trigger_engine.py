@@ -71,29 +71,60 @@ def _simulate_order_drop(city: str, trigger_type: str) -> float:
     return round(base + jitter, 3)
 
 
+async def get_curfew_status(city: str, supabase) -> float:
+    """Returns 1.0 if curfew is active for the city, 0.0 otherwise."""
+    result = (
+        supabase.table("curfew_flags")
+        .select("is_active, zone")
+        .eq("city", city)
+        .single()
+        .execute()
+    )
+
+    if result.data and result.data.get("is_active"):
+        return 1.0
+
+    return 0.0
+
+
 async def evaluate_city(city: str):
     """
     Poll all data sources for a city and evaluate all applicable triggers.
     """
     supabase = get_supabase()
 
+    weather = None
+    aqi = None
+
     try:
         weather = await get_current_weather(city)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[TriggerEngine] Weather fetch failed for %s: %s", city, exc)
+
+    try:
         aqi = await get_city_aqi(city)
     except Exception as exc:  # noqa: BLE001
-        logger.error("[TriggerEngine] Data fetch failed for %s: %s", city, exc)
-        return
+        logger.error("[TriggerEngine] AQI fetch failed for %s: %s", city, exc)
 
-    evaluations = [
-        ("heat", weather["temp_c"], TRIGGERS["heat"]["threshold"], weather["source"]),
-        (
-            "rainfall",
-            weather["rain_mm_24h"],
-            TRIGGERS["rainfall"]["threshold"],
-            weather["source"],
-        ),
-        ("aqi", aqi["aqi"], TRIGGERS["aqi"]["threshold"], aqi["source"]),
-    ]
+    evaluations = []
+    if weather:
+        evaluations.extend(
+            [
+                ("heat", weather["temp_c"], TRIGGERS["heat"]["threshold"], weather["source"]),
+                (
+                    "rainfall",
+                    weather["rain_mm_24h"],
+                    TRIGGERS["rainfall"]["threshold"],
+                    weather["source"],
+                ),
+            ],
+        )
+
+    if aqi:
+        evaluations.append(("aqi", aqi["aqi"], TRIGGERS["aqi"]["threshold"], aqi["source"]))
+
+    curfew_value = await get_curfew_status(city, supabase)
+    evaluations.append(("curfew", curfew_value, TRIGGERS["curfew"]["threshold"], "Supabase"))
 
     for trigger_type, raw_value, threshold, source in evaluations:
         breached = raw_value >= threshold
@@ -124,6 +155,7 @@ async def evaluate_city(city: str):
                 "and_condition": and_condition,
                 "weather": weather,
                 "aqi": aqi,
+                "curfew_active": bool(curfew_value),
             },
         }
 

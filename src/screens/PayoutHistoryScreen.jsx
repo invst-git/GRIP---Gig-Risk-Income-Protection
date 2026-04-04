@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { PageTransition } from '../components/PageTransition'
 import { StaggerGroup } from '../components/StaggerGroup'
 import { Card, StatusBadge } from '../components/ui'
-import { payoutFilters } from '../data/appData'
 import { useClaimsData } from '../hooks/useClaimsData'
 import { formatCurrency } from '../lib/utils'
+
+const FILTERS = ['All', 'AQI', 'Rainfall', 'Heatwave', 'Curfew']
 
 function FilterChip({ active, label, onClick }) {
   return (
@@ -112,7 +113,7 @@ function LoadingSkeleton() {
 
           <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
             <div className="flex gap-2 pb-1">
-              {payoutFilters.map((item) => (
+              {FILTERS.map((item) => (
                 <div
                   key={`filter-skeleton-${item}`}
                   className="h-10 w-24 flex-shrink-0 animate-pulse rounded-full bg-bg-elevated"
@@ -220,7 +221,7 @@ export function PayoutHistoryScreen() {
 
           <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
             <div className="flex gap-2 pb-1">
-              {payoutFilters.map((item) => (
+              {FILTERS.map((item) => (
                 <FilterChip
                   key={item}
                   label={item}

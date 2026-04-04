@@ -64,7 +64,7 @@ export function OnboardingComplete() {
 
         <p className="relative z-10 text-[12px] text-text-secondary">
           Premium dynamically priced. Your zone risk score:{' '}
-          {registrationResult?.zoneRiskScore ?? profile.zoneRiskScore}x
+          {Number(registrationResult?.zoneRiskScore || 0).toFixed(2)}x
         </p>
 
         <PrimaryButton className="relative z-10" onClick={() => navigate('/dashboard')}>

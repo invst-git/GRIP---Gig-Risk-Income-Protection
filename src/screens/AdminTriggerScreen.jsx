@@ -3,11 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { AdminTopTabs } from '../components/AdminTopTabs'
 import { PageTransition } from '../components/PageTransition'
 import { WarningIcon } from '../components/icons'
-import { Card, InputField, PrimaryButton, SegmentedControl, StatusBadge } from '../components/ui'
-import { adminTriggerConfig, cityOptions } from '../data/appData'
+import {
+  Card,
+  InputField,
+  PrimaryButton,
+  SecondaryButton,
+  SegmentedControl,
+  StatusBadge,
+} from '../components/ui'
+import { adminTriggerConfig } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
 import { useAnalyticsData } from '../hooks/useAnalyticsData'
 import { formatCurrency } from '../lib/utils'
+
+const CITIES = ['Delhi', 'Mumbai', 'Bengaluru', 'Chennai', 'Hyderabad']
 
 const DEMO_TRIGGERS = [
   { label: 'AQI', value: 'AQI', triggerType: 'aqi', overrideValue: 350, unit: 'AQI' },
@@ -34,6 +43,19 @@ async function fireTrigger({ city, triggerType, overrideValue }) {
   return response.json()
 }
 
+async function setCurfew(city, active) {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/admin/set-curfew?city=${encodeURIComponent(city)}&active=${encodeURIComponent(active)}`,
+    { method: 'POST' },
+  )
+
+  if (!response.ok) {
+    throw new Error('Curfew update failed')
+  }
+
+  return response.json()
+}
+
 function getCityWithMostPartners(partnersByCity) {
   const entries = Object.entries(partnersByCity || {})
 
@@ -47,16 +69,19 @@ export function AdminTriggerScreen() {
   const { data } = useAnalyticsData()
   const { adminSimulation, updateAdminSimulation, fireAdminTrigger } = useGRIP()
   const [isLoading, setIsLoading] = useState(false)
+  const [isCurfewLoading, setIsCurfewLoading] = useState(false)
+  const [fraudLoading, setFraudLoading] = useState(false)
+  const [fraudResult, setFraudResult] = useState(null)
+  const [fraudError, setFraudError] = useState(null)
   const [error, setError] = useState(null)
   const [hasInitializedCity, setHasInitializedCity] = useState(false)
 
   const triggerMeta = adminTriggerConfig[adminSimulation.triggerType]
   const triggerConfig =
     DEMO_TRIGGERS.find((item) => item.value === adminSimulation.triggerType) ?? DEMO_TRIGGERS[0]
-  const availableCities =
-    Object.keys(data?.partnersByCity || {}).length > 0
-      ? Object.keys(data.partnersByCity)
-      : cityOptions
+  const selectedCity = adminSimulation.city
+  const selectedTriggerType = triggerConfig.triggerType
+  const availableCities = CITIES
   const cityWithMostPartners = getCityWithMostPartners(data?.partnersByCity)
   const affectedPartners = data?.partnersByCity?.[adminSimulation.city] ?? 0
   const payoutRate = adminSimulation.triggerType === 'Curfew' ? 600 : 400
@@ -109,6 +134,50 @@ export function AdminTriggerScreen() {
       setError(triggerError.message)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function handleSetCurfew() {
+    setIsCurfewLoading(true)
+    setError(null)
+
+    try {
+      await setCurfew(adminSimulation.city, adminSimulation.readingValue === 'Yes')
+    } catch (curfewError) {
+      setError(curfewError.message)
+    } finally {
+      setIsCurfewLoading(false)
+    }
+  }
+
+  async function fireFraudClaim() {
+    setFraudLoading(true)
+    setFraudResult(null)
+    setFraudError(null)
+
+    const trigger = DEMO_TRIGGERS.find((item) => item.triggerType === selectedTriggerType)
+    const overrideVal = trigger?.overrideValue ?? 350
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/admin/fire-fraud-claim?city=${encodeURIComponent(selectedCity)}&trigger_type=${encodeURIComponent(selectedTriggerType)}&override_value=${encodeURIComponent(overrideVal)}`,
+        { method: 'POST' },
+      )
+
+      if (!response.ok) {
+        throw new Error('Request failed')
+      }
+
+      const result = await response.json()
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      setFraudResult(result)
+    } catch (requestError) {
+      setFraudError(requestError.message || 'Fraud claim creation failed')
+    } finally {
+      setFraudLoading(false)
     }
   }
 
@@ -203,13 +272,67 @@ export function AdminTriggerScreen() {
       </div>
 
       <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
-        <PrimaryButton
-          onClick={handleFireTrigger}
-          loading={isLoading}
-          loadingText="Processing trigger..."
-        >
-          Fire Trigger
-        </PrimaryButton>
+        <div className="space-y-6">
+          <div className="flex gap-3">
+            {adminSimulation.triggerType === 'Curfew' ? (
+              <SecondaryButton
+                onClick={handleSetCurfew}
+                loading={isCurfewLoading}
+                loadingText="Syncing..."
+              >
+                Sync Curfew Flag
+              </SecondaryButton>
+            ) : null}
+            <PrimaryButton
+              onClick={handleFireTrigger}
+              loading={isLoading}
+              loadingText="Processing trigger..."
+            >
+              Fire Trigger
+            </PrimaryButton>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <p className="mb-1 text-xs uppercase tracking-widest text-text-secondary">
+              Fraud Detection Test
+            </p>
+            <p className="mb-4 text-xs leading-relaxed text-text-secondary opacity-70">
+              Fires a claim with anomalous feature values using the selected city and trigger
+              type. The Isolation Forest model will flag it for review. No payout is initiated.
+            </p>
+
+            <button
+              onClick={fireFraudClaim}
+              disabled={fraudLoading}
+              className="w-full rounded-xl border border-red-500/40 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {fraudLoading ? 'Creating fraud claim...' : 'Fire Fraud Claim'}
+            </button>
+
+            {fraudResult ? (
+              <div className="mt-3 flex flex-col gap-1 rounded-xl border border-red-500/20 bg-red-500/10 p-3">
+                <p className="text-xs font-medium text-red-400">Fraud Claim Created</p>
+                <p className="text-xs text-text-secondary">{fraudResult.claim_number}</p>
+                <p className="text-xs text-text-secondary">
+                  Trigger: {fraudResult.trigger_type} in {fraudResult.city}
+                </p>
+                <p className="text-xs text-text-secondary">
+                  Anomaly Score: {fraudResult.anomaly_score?.toFixed(4)}
+                </p>
+                <p className="text-xs text-text-secondary">
+                  Confidence: {fraudResult.confidence}
+                </p>
+                <p className="mt-1 text-xs text-red-400">
+                  Held for manual review - no payout initiated
+                </p>
+              </div>
+            ) : null}
+
+            {fraudError ? (
+              <p className="mt-2 text-xs text-red-400">{fraudError}</p>
+            ) : null}
+          </div>
+        </div>
       </div>
     </PageTransition>
   )

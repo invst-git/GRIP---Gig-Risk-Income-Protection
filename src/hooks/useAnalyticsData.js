@@ -33,10 +33,20 @@ export function useAnalyticsData() {
         const partners = partnersRes.data || []
         const activePartnersList = partners.filter((partner) => partner.is_active)
 
-        const totalPremiumsCollected = activePartnersList.reduce(
-          (sum, partner) => sum + (partner.weekly_premium || 0),
-          0,
+        const firstEnrolled = partners.length > 0
+          ? new Date(Math.min(...partners.map((partner) => new Date(partner.enrolled_since))))
+          : new Date()
+        const weeksSinceLaunch = Math.max(
+          1,
+          Math.ceil((new Date() - firstEnrolled) / (7 * 24 * 60 * 60 * 1000)),
         )
+
+        const totalPremiumsCollected = partners
+          .filter((partner) => partner.is_active)
+          .reduce(
+            (sum, partner) => sum + (partner.weekly_premium || 0) * weeksSinceLaunch,
+            0,
+          )
 
         const totalPayoutsAmount = payouts
           .filter((payout) => payout.status === 'processed')
@@ -44,7 +54,7 @@ export function useAnalyticsData() {
 
         const lossRatio =
           totalPremiumsCollected > 0
-            ? ((totalPayoutsAmount / totalPremiumsCollected) * 100).toFixed(1)
+            ? Math.min(999, (totalPayoutsAmount / totalPremiumsCollected) * 100).toFixed(1)
             : '0.0'
 
         const activePartners = activePartnersList.length
@@ -102,7 +112,9 @@ export function useAnalyticsData() {
           partnersByCity[partner.city] = (partnersByCity[partner.city] || 0) + 1
         })
 
-        const recentTriggers = triggers.slice(0, 10)
+        const recentTriggers = triggers
+          .filter((trigger) => trigger.confirmed === true && trigger.raw_value > 0)
+          .slice(0, 10)
 
         if (!isActive) return
 

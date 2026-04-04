@@ -12,18 +12,41 @@ import { registerPartner } from '../services/registrationService'
 const GRIPContext = createContext(null)
 
 const initialOnboardingForm = {
+  // Step 1 - Personal
   fullName: '',
   mobileNumber: '',
+  otpVerified: false,
+  dateOfBirth: '',
+  gender: '',
+  language: '',
   city: '',
+  // Step 2 - Identity
   aadhaarLast4: '',
-  platform: partnerProfile.platform,
-  vehicleType: partnerProfile.vehicleType,
-  operatingZone: partnerProfile.zone,
-  avgDailyOrders: String(partnerProfile.avgDailyOrders),
-  avgDailyHours: String(partnerProfile.avgDailyHours),
-  upiId: partnerProfile.upiId,
-  confirmUpiId: partnerProfile.upiId,
-  consent: false,
+  panNumber: '',
+  panVerified: false,
+  panMasked: '',
+  // Step 3 - Work profile
+  platform: '',
+  vehicleType: '',
+  operatingZone: '',
+  avgDailyOrders: '',
+  avgDailyHours: '',
+  // Step 4 - Vehicle documents
+  dlNumber: '',
+  dlVerified: false,
+  dlMasked: '',
+  rcNumber: '',
+  rcVerified: false,
+  hasInsurance: false,
+  emergencyContact: '',
+  // Step 5 - Payment
+  bankAccountNumber: '',
+  ifscCode: '',
+  bankName: '',
+  upiId: '',
+  confirmUpiId: '',
+  // Meta
+  coverageTier: 'Standard',
 }
 
 const initialAdminSimulation = {
@@ -94,6 +117,10 @@ export function GRIPProvider({ children }) {
 
     if (partnerTier) {
       setSelectedPlanName(partnerTier)
+      setOnboardingForm((current) => ({
+        ...current,
+        coverageTier: partnerTier,
+      }))
     }
   }, [registrationResult?.partner?.id, registrationResult?.partner?.coverage_tier])
 
@@ -167,6 +194,10 @@ export function GRIPProvider({ children }) {
 
   function setSelectedPlan(planName) {
     setSelectedPlanName(planName)
+    setOnboardingForm((current) => ({
+      ...current,
+      coverageTier: planName,
+    }))
   }
 
   function logout() {

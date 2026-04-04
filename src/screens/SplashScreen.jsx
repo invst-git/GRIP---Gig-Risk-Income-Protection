@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { LogoMark } from '../components/LogoMark'
 import { PageTransition } from '../components/PageTransition'
-import { PrimaryButton, SecondaryButton } from '../components/ui'
+import { GRIPLogo, PrimaryButton, SecondaryButton } from '../components/ui'
 
 const MotionBlock = motion.div
 
@@ -40,7 +39,7 @@ export function SplashScreen() {
           }}
         >
           <div className="rounded-full border border-white/80 bg-bg-surface/92 p-[clamp(22px,6vw,32px)] shadow-[0_26px_60px_rgba(36,69,122,0.12)] backdrop-blur-md">
-            <LogoMark />
+            <GRIPLogo dark={false} size="md" />
           </div>
         </MotionBlock>
       </div>

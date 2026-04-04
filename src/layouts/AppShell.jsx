@@ -11,12 +11,15 @@ import Login from '../screens/Login'
 import { OnboardingComplete } from '../screens/OnboardingComplete'
 import OnboardingExclusions from '../screens/OnboardingExclusions'
 import { OnboardingStepOne } from '../screens/OnboardingStepOne'
+import { OnboardingStepFive } from '../screens/OnboardingStepFive'
+import { OnboardingStepFour } from '../screens/OnboardingStepFour'
 import { OnboardingStepThree } from '../screens/OnboardingStepThree'
 import { OnboardingStepTwo } from '../screens/OnboardingStepTwo'
 import { PayoutDetailScreen } from '../screens/PayoutDetailScreen'
 import { PayoutHistoryScreen } from '../screens/PayoutHistoryScreen'
 import { PolicyActiveScreen } from '../screens/PolicyActiveScreen'
 import { PolicySelectionScreen } from '../screens/PolicySelectionScreen'
+import ProfileScreen from '../screens/ProfileScreen'
 import { ScreenStub } from '../screens/ScreenStub'
 import { SplashScreen } from '../screens/SplashScreen'
 import { TriggerAlertScreen } from '../screens/TriggerAlertScreen'
@@ -31,6 +34,8 @@ const routes = [
   { path: '/onboarding/1', element: <OnboardingStepOne /> },
   { path: '/onboarding/2', element: <OnboardingStepTwo /> },
   { path: '/onboarding/3', element: <OnboardingStepThree /> },
+  { path: '/onboarding/4', element: <OnboardingStepFour /> },
+  { path: '/onboarding/5', element: <OnboardingStepFive /> },
   { path: '/onboarding/exclusions', element: <OnboardingExclusions /> },
   { path: '/onboarding/complete', element: <OnboardingComplete /> },
   { path: '/dashboard', element: protect(<DashboardScreen />) },
@@ -38,6 +43,7 @@ const routes = [
   { path: '/policy/active', element: protect(<PolicyActiveScreen />) },
   { path: '/payouts', element: protect(<PayoutHistoryScreen />) },
   { path: '/payouts/detail', element: protect(<PayoutDetailScreen />) },
+  { path: '/profile', element: protect(<ProfileScreen />) },
   { path: '/trigger-alert', element: protect(<TriggerAlertScreen />) },
   { path: '/admin/dashboard', element: <AdminDashboardScreen /> },
   { path: '/admin/trigger', element: <AdminTriggerScreen /> },
@@ -50,6 +56,7 @@ const partnerBottomNavRoutes = new Set([
   '/policy/active',
   '/payouts',
   '/payouts/detail',
+  '/profile',
 ])
 
 export function AppShell() {

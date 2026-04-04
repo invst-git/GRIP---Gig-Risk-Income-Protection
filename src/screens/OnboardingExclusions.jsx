@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageTransition } from '../components/PageTransition'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { StepDots } from '../components/StepDots'
 import { Card, PrimaryButton } from '../components/ui'
 
 const EXCLUSIONS = [
@@ -43,7 +44,8 @@ export default function OnboardingExclusions() {
 
   return (
     <PageTransition className="flex min-h-full flex-col">
-      <ScreenHeader title="Step 4 of 4" backTo="/onboarding/3" align="center" />
+      <ScreenHeader title="Step 6 of 6" backTo="/onboarding/5" align="center" />
+      <StepDots activeStep={6} totalSteps={6} />
 
       <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <div className="mx-auto w-full max-w-[390px] space-y-6">

@@ -2,8 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { BellIcon, DotIcon, WarningIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
 import { StaggerGroup } from '../components/StaggerGroup'
-import { Card, ProgressBar, StatusBadge } from '../components/ui'
-import { riskSnapshot } from '../data/appData'
+import { Card, GRIPLogo, ProgressBar, StatusBadge } from '../components/ui'
 import { useGRIP } from '../context/GRIPContext'
 import { useClaimsData } from '../hooks/useClaimsData'
 import { formatCurrency } from '../lib/utils'
@@ -66,23 +65,56 @@ function getStatusTone(status) {
   }
 }
 
+const CITY_HAZARD_PROFILE = {
+  Delhi: { aqi: 0.83, flood: 0.35, heat: 0.7 },
+  Mumbai: { aqi: 0.1, flood: 0.75, heat: 0.05 },
+  Bengaluru: { aqi: 0.12, flood: 0.65, heat: 0.08 },
+  Chennai: { aqi: 0.15, flood: 0.58, heat: 0.45 },
+  Hyderabad: { aqi: 0.22, flood: 0.3, heat: 0.5 },
+}
+
+const CITY_SEASON_LABELS = {
+  Delhi: { aqi: 'Oct-Jan', heat: 'May-Jun' },
+  Mumbai: { aqi: 'Dec-Feb', heat: 'Apr-May' },
+  Bengaluru: { aqi: 'Dec-Jan', heat: 'Mar-Apr' },
+  Chennai: { aqi: 'Dec-Jan', heat: 'Apr-Jun' },
+  Hyderabad: { aqi: 'Nov-Jan', heat: 'Apr-May' },
+}
+
+function getRiskDescriptor(value) {
+  if (value >= 70) return 'High'
+  if (value >= 40) return 'Moderate'
+  return 'Low'
+}
+
 export function DashboardScreen() {
   const navigate = useNavigate()
   const { registrationResult, profile, activeTrigger } = useGRIP()
   const { claims, loading } = useClaimsData()
-  const city = registrationResult?.partner?.city || profile?.city || 'your city'
+  const partner = registrationResult?.partner
+  const city = partner?.city || profile?.city || 'your city'
+  const score = parseFloat(partner?.zone_risk_score || profile?.zoneRiskScore || 1.0)
+  const baseline = CITY_HAZARD_PROFILE[city] || CITY_HAZARD_PROFILE.Delhi
+  const seasons = CITY_SEASON_LABELS[city] || CITY_SEASON_LABELS.Delhi
+  const multiplier = Math.min(score / 1.0, 1.5)
+  const aqiRiskPct = Math.min(100, Math.round(baseline.aqi * multiplier * 100))
+  const floodRiskPct = Math.min(100, Math.round(baseline.flood * multiplier * 100))
+  const heatRiskPct = Math.min(100, Math.round(baseline.heat * multiplier * 100))
   const dynamicRiskSnapshot = [
     {
-      ...riskSnapshot[0],
-      label: `AQI Risk (${city}, Oct-Jan)`,
+      label: `AQI Risk (${city}, ${seasons.aqi})`,
+      descriptor: getRiskDescriptor(aqiRiskPct),
+      value: aqiRiskPct,
     },
     {
-      ...riskSnapshot[1],
       label: `Flood Risk (${city})`,
+      descriptor: getRiskDescriptor(floodRiskPct),
+      value: floodRiskPct,
     },
     {
-      ...riskSnapshot[2],
-      label: `Heat Risk (${city}, Apr-Jun)`,
+      label: `Heat Risk (${city}, ${seasons.heat})`,
+      descriptor: getRiskDescriptor(heatRiskPct),
+      value: heatRiskPct,
     },
   ]
   const recentClaims = claims.slice(0, 3)
@@ -93,9 +125,7 @@ export function DashboardScreen() {
 
       <div className="flex items-center px-4 pt-4 sm:px-5 sm:pt-5">
         <div>
-          <p className="font-display text-[24px] font-normal leading-none text-text-primary">
-            GRIP
-          </p>
+          <GRIPLogo dark={true} size="sm" />
         </div>
         <button
           type="button"
