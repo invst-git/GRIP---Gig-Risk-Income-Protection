@@ -6,22 +6,22 @@
 
 ## What Changed from Phase 1
 
-Phase 1 established the product concept, persona research, trigger design philosophy, and a fully designed prototype with mock data. The Phase 1 jury identified one gap: coverage exclusions were absent from the onboarding flow.
+Phase 1 established the product concept, persona research, trigger design philosophy, and a fully designed prototype with mock data.
 
 Phase 2 delivered the following on top of Phase 1:
 
 - Two trained ML models served via FastAPI (XGBoost zone risk scorer, Isolation Forest fraud detector)
 - Live parametric trigger engine polling OpenWeatherMap and CPCB every 15 minutes for 5 cities
 - Supabase-backed database replacing all mock data across 8 tables
-- Realistic 6-step KYC onboarding with mock Sarathi DL verification, Vahan RC verification, and PAN validation
+- 6-step KYC onboarding with mock Sarathi DL verification, Vahan RC verification, and PAN validation
 - Zero-touch claim lifecycle: trigger confirmation → fraud scoring → simulated payout in under 2 seconds
 - Real-time claims feed via Supabase Postgres change publications
 - Admin dashboard with live loss ratios, trigger heatmap, and fraud detection controls
-- Coverage exclusions screen added to onboarding (Phase 1 jury gap closed)
+- Coverage exclusions screen added to onboarding
 
 ---
 
-## Coverage Exclusions (Phase 1 Jury Gap - Closed)
+## Coverage Exclusions
 
 The following are permanently excluded from GRIP coverage and are presented to every partner before policy activation via a mandatory consent screen:
 
@@ -116,13 +116,13 @@ Validates IFSC against regex `^[A-Z]{4}0[A-Z0-9]{6}$`. Maps first 4 characters t
 
 ### Conditional Vehicle Document Logic
 
-The research established that bicycle partners on Swiggy are explicitly exempt from DL and RC requirements. This is implemented as:
+Bicycle partners on Swiggy are explicitly exempt from DL and RC requirements. This is implemented as:
 
 ```python
 # OnboardingStepFour.jsx
 useEffect(() => {
   if (onboardingForm.vehicleType === 'Bicycle') {
-    navigate('/onboarding/5')  # Skip vehicle docs entirely
+    navigate('/onboarding/5') 
   }
 }, [])
 ```
@@ -312,7 +312,6 @@ Two calls per city per poll:
 
 Total: 10 calls per poll cycle × 96 cycles/day = 960 calls/day. Free tier limit: 1,000 calls/day. Within limit with 40 calls headroom.
 
-One Call 3.0 was rejected: requires paid subscription activation even on free tier, returning 401 on all requests until manually subscribed at `openweathermap.org/api`.
 
 **AQI (CPCB via data.gov.in):**
 `GET /resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69` with `filters[state]` per city. Returns all monitoring stations in the state. Maximum AQI value across all stations is used - conservative approach that flags the city as at-risk if any station breaches the threshold. Hourly update frequency; free with API key registration.
@@ -392,10 +391,6 @@ Toggles `curfew_flags.is_active` for the given city. The next scheduler poll (wi
 ---
 
 ## Payout Simulation
-
-RazorpayX Bulk Payouts API requires business banking KYC activation through a separate portal (`x.razorpay.com`). This activation requires verified business documents and takes 3-5 business days. The Phase 2 deadline and hackathon context made this activation infeasible.
-
-The usecase explicitly permits simulation: *"Integrate mock payment gateways (Razorpay test mode, Stripe sandbox, or UPI simulators) to demonstrate how the worker receives their lost wages instantly."*
 
 Simulation behaviour in `claim_service.py`:
 - Generates a `pout_DEMO_{random_8_digits}` payout ID mimicking RazorpayX format
