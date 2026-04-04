@@ -1,5 +1,5 @@
 # GRIP: Gig Risk Income Protection
-
+[![Phase 2](https://img.shields.io/badge/Phase-2-blue)](Phase2.md)
 > Parametric Income Insurance for India's Food Delivery Partners
 
 > **Hackathon prototype - Guidewire DEVTrails 2026, Phase 1 submission.** All payout flows, UPI disbursements, fraud detection layers, and platform integrations described in this document are architected and demonstrated in simulation. Specific items not yet active and pending commercial partnerships include: live earnings-settlement premium deductions, real-time order volume data from Zomato/Swiggy, Airtel IoT Locate network triangulation, and Razorpay bulk payout production mode. The RBI Innovation Hub DPIP integration is a planned architectural direction, not a built or contracted capability. Research findings, trigger calibration methodology, fraud defense architecture, and the Evidence Locker design are original work completed during this hackathon.
