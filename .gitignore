@@ -13,8 +13,6 @@ dist-ssr
 .venv/
 __pycache__/
 *.py[cod]
-ml-data/data/
-ml-data/models/
 .env
 .env.*
 !.env.example
