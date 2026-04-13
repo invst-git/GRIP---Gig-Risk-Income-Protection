@@ -57,6 +57,15 @@ export async function registerPartner(formData, selectedPlanName = 'Standard') {
     throw partnerError
   }
 
+  // Seed 12 weeks of behavioral baseline for fraud scoring (fire-and-forget)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/kyc/partners/${partner.id}/seed-baseline` +
+        `?avg_daily_orders=${Number(formData.avgDailyOrders)}&avg_daily_hours=${Number(formData.avgDailyHours)}`,
+      { method: 'POST' },
+    ).catch(() => {/* non-critical — baseline will fall back to 0.08 */})
+  }
+
   try {
     const accountMasked = `XXXX XXXX ${formData.bankAccountNumber.slice(-4)}`
     const { data: bankAccount, error: bankAccountError } = await supabase

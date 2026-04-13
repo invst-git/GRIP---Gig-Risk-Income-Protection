@@ -6,6 +6,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from supabase import create_client
 
+from ..services.activity_service import seed_partner_baseline
+
 router = APIRouter()
 
 
@@ -173,6 +175,17 @@ async def verify_rc(req: RCRequest):
         "expiry_date": record["expiry_date"],
         "code": "VERIFIED",
     }
+
+
+@router.post("/partners/{partner_id}/seed-baseline")
+async def seed_baseline(
+    partner_id: str,
+    avg_daily_orders: int = 20,
+    avg_daily_hours: float = 8.0,
+):
+    supabase = get_supabase()
+    seed_partner_baseline(partner_id, avg_daily_orders, avg_daily_hours, supabase)
+    return {"success": True}
 
 
 IFSC_BANK_MAP = {

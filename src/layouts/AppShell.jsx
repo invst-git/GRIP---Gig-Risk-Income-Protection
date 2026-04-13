@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'framer-motion'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import NotificationToast from '../components/ui/NotificationToast'
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen'
 import { AdminTriggerConfirmScreen } from '../screens/AdminTriggerConfirmScreen'
 import { AdminTriggerScreen } from '../screens/AdminTriggerScreen'
@@ -65,6 +66,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-[100dvh] bg-bg-primary md:h-[100dvh] md:overflow-hidden md:p-6">
+      <NotificationToast />
       <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-frame flex-col overflow-hidden bg-bg-primary md:h-full md:min-h-0 md:rounded-[36px] md:border md:border-white/70 md:bg-bg-surface/65 md:shadow-frame md:backdrop-blur-2xl">
         <div className={cn('relative flex-1 min-h-0 overflow-hidden')}>
           <AnimatePresence mode="wait" initial={false}>

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { HomeIcon, ReceiptIcon, ShieldIcon, UserIcon } from './icons'
 import { cn } from '../lib/utils'
+import { useNotifications } from '../context/NotificationContext'
 
 const navItems = [
   {
@@ -32,6 +33,7 @@ const navItems = [
 export function BottomNavBar() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { unreadCount, markAllRead } = useNotifications()
 
   return (
     <div className="sticky bottom-0 z-30 mt-auto bg-gradient-to-t from-bg-primary via-bg-primary/95 to-transparent px-4 pb-[calc(max(env(safe-area-inset-bottom),8px)+12px)] pt-3">
@@ -46,15 +48,25 @@ export function BottomNavBar() {
                 <button
                   type="button"
                   className="flex h-full w-full flex-col items-center justify-center gap-1"
-                  onClick={() => navigate(item.to)}
+                  onClick={() => {
+                    if (item.label === 'Claims') markAllRead()
+                    navigate(item.to)
+                  }}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <Icon
-                    className={cn(
-                      'h-5 w-5 transition-colors',
-                      active ? 'text-accent-primary' : 'text-text-secondary',
+                  <div className="relative">
+                    <Icon
+                      className={cn(
+                        'h-5 w-5 transition-colors',
+                        active ? 'text-accent-primary' : 'text-text-secondary',
+                      )}
+                    />
+                    {item.label === 'Claims' && unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
-                  />
+                  </div>
                   <span
                     className={cn(
                       'text-[11px] font-medium',

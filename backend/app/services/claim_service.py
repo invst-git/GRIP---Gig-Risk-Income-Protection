@@ -26,6 +26,43 @@ def get_supabase() -> Client:
     )
 
 
+def compute_activity_kl_divergence(partner_id: str, supabase) -> float:
+    """Compute real behavioral deviation from partner's 8-week baseline."""
+    try:
+        result = (
+            supabase.table("partner_activity_log")
+            .select("orders_completed")
+            .eq("partner_id", partner_id)
+            .order("week_start", desc=True)
+            .limit(9)
+            .execute()
+        )
+
+        if not result.data or len(result.data) < 5:
+            return 0.08  # fallback to legitimate median
+
+        values = [r["orders_completed"] for r in result.data]
+        current = values[0]
+        baseline = values[1:]
+
+        baseline_mean = sum(baseline) / len(baseline)
+        baseline_std = max(
+            (sum((x - baseline_mean) ** 2 for x in baseline) / len(baseline)) ** 0.5,
+            1.0,
+        )
+        z_score = abs(current - baseline_mean) / baseline_std
+        kl_proxy = min(round(z_score * 0.08, 4), 1.20)
+        logger.info(
+            "[Fraud] KL divergence for partner %s: %.4f (z=%.2f)",
+            partner_id, kl_proxy, z_score,
+        )
+        return kl_proxy
+
+    except Exception:
+        logger.exception("[Fraud] compute_activity_kl_divergence failed for partner %s", partner_id)
+        return 0.08
+
+
 async def call_fraud_score(claim_features: dict) -> dict:
     """Call the local /ml/fraud-score endpoint."""
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -104,7 +141,7 @@ async def create_claims_for_trigger(trigger_event: dict):
             "cancellation_ratio": 0.05,
             "network_reuse_count": 0,
             "fnol_last_trip_delta_hours": 1.0,
-            "activity_kl_divergence": 0.05,
+            "activity_kl_divergence": compute_activity_kl_divergence(partner["id"], supabase),
         }
 
         fraud_result = await call_fraud_score(fraud_features)
