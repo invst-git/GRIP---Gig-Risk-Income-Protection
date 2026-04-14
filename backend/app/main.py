@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import kyc, ml
-from .services.claim_service import create_claims_for_trigger, get_supabase
+from .services.claim_service import ML_SERVICE_URL, create_claims_for_trigger, get_supabase
 from .trigger_config import TRIGGERS
 from .trigger_engine import start_trigger_engine
 
@@ -119,7 +119,7 @@ async def fire_fraud_claim(
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         fraud_resp = await client.post(
-            "http://localhost:8000/ml/fraud-score",
+            f"{ML_SERVICE_URL}/ml/fraud-score",
             json=fraud_features,
         )
         fraud_resp.raise_for_status()

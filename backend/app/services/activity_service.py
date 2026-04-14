@@ -26,5 +26,8 @@ def seed_partner_baseline(
             "cancellation_count": random.randint(0, 3),
             "nocturnal_orders": max(0, int(avg_daily_orders * 0.08 * jitter)),
         })
-    supabase.table("partner_activity_log").insert(rows).execute()
+    supabase.table("partner_activity_log").upsert(
+        rows,
+        on_conflict="partner_id,week_start",
+    ).execute()
     logger.info("[Baseline] Seeded 12 weeks of activity for partner %s", partner_id)

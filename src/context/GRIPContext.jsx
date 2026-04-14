@@ -56,6 +56,13 @@ const initialAdminSimulation = {
   daysActive: '2',
 }
 
+const PAYOUT_RATES = {
+  rainfall: 400,
+  heat: 400,
+  aqi: 400,
+  curfew: 400,
+}
+
 function getPlanByName(planName) {
   return planOptions.find((plan) => plan.name === planName) ?? planOptions[1]
 }
@@ -175,7 +182,7 @@ export function GRIPProvider({ children }) {
   const affectedPartners =
     affectedPartnersByCity[adminSimulation.city] ?? affectedPartnersByCity.Delhi
   const daysActive = Number(adminSimulation.daysActive) || 0
-  const payoutRate = adminSimulation.triggerType === 'Curfew' ? 600 : 400
+  const payoutRate = PAYOUT_RATES[adminSimulation.triggerType?.toLowerCase()] ?? 400
   const estimatedPayout = affectedPartners * daysActive * payoutRate
 
   function updateOnboardingField(field, value) {

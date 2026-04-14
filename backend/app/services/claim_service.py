@@ -11,6 +11,11 @@ from ..trigger_config import FIRST_PAYOUT_CAP, PAYOUT_RATES
 
 logger = logging.getLogger(__name__)
 
+ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://127.0.0.1:8000")
+KL_FALLBACK = 0.08
+KL_SCALE = 0.08
+KL_CAP = 1.20
+
 
 def _get_inserted_row(result):
     if isinstance(result.data, list):
@@ -39,7 +44,7 @@ def compute_activity_kl_divergence(partner_id: str, supabase) -> float:
         )
 
         if not result.data or len(result.data) < 5:
-            return 0.08  # fallback to legitimate median
+            return KL_FALLBACK
 
         values = [r["orders_completed"] for r in result.data]
         current = values[0]
@@ -51,7 +56,7 @@ def compute_activity_kl_divergence(partner_id: str, supabase) -> float:
             1.0,
         )
         z_score = abs(current - baseline_mean) / baseline_std
-        kl_proxy = min(round(z_score * 0.08, 4), 1.20)
+        kl_proxy = min(round(z_score * KL_SCALE, 4), KL_CAP)
         logger.info(
             "[Fraud] KL divergence for partner %s: %.4f (z=%.2f)",
             partner_id, kl_proxy, z_score,
@@ -60,14 +65,14 @@ def compute_activity_kl_divergence(partner_id: str, supabase) -> float:
 
     except Exception:
         logger.exception("[Fraud] compute_activity_kl_divergence failed for partner %s", partner_id)
-        return 0.08
+        return KL_FALLBACK
 
 
 async def call_fraud_score(claim_features: dict) -> dict:
     """Call the local /ml/fraud-score endpoint."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.post(
-            "http://127.0.0.1:8000/ml/fraud-score",
+            f"{ML_SERVICE_URL}/ml/fraud-score",
             json=claim_features,
         )
         response.raise_for_status()

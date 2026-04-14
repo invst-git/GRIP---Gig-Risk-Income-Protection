@@ -51,7 +51,10 @@ export function NotificationProvider({ children }) {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+    }
   }, [partner?.id])
 
   const markAllRead = () =>

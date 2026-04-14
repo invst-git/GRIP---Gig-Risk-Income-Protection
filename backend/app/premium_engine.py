@@ -24,9 +24,9 @@ VEHICLE_MODIFIER = {
 }
 
 TIER_MULTIPLIERS = {
-    "Basic": 1.0,
+    "Basic": 1.00,
     "Standard": 1.25,
-    "Premium": 1.5,
+    "Premium": 1.50,
 }
 
 

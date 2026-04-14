@@ -11,12 +11,10 @@ import {
   SegmentedControl,
   StatusBadge,
 } from '../components/ui'
-import { adminTriggerConfig } from '../data/appData'
+import { adminTriggerConfig, cityOptions } from '../data/appData'
 import { useGRIP } from '../context/GRIPContext'
 import { useAnalyticsData } from '../hooks/useAnalyticsData'
 import { formatCurrency } from '../lib/utils'
-
-const CITIES = ['Delhi', 'Mumbai', 'Bengaluru', 'Chennai', 'Hyderabad']
 
 const DEMO_TRIGGERS = [
   { label: 'AQI', value: 'AQI', triggerType: 'aqi', overrideValue: 350, unit: 'AQI' },
@@ -24,6 +22,13 @@ const DEMO_TRIGGERS = [
   { label: 'Heatwave', value: 'Heatwave', triggerType: 'heat', overrideValue: 44, unit: 'C' },
   { label: 'Curfew', value: 'Curfew', triggerType: 'curfew', overrideValue: 1, unit: '' },
 ]
+
+const PAYOUT_RATES = {
+  rainfall: 400,
+  heat: 400,
+  aqi: 400,
+  curfew: 400,
+}
 
 const curfewConfirmationOptions = [
   { label: 'Yes', value: 'Yes' },
@@ -81,10 +86,10 @@ export function AdminTriggerScreen() {
     DEMO_TRIGGERS.find((item) => item.value === adminSimulation.triggerType) ?? DEMO_TRIGGERS[0]
   const selectedCity = adminSimulation.city
   const selectedTriggerType = triggerConfig.triggerType
-  const availableCities = CITIES
+  const availableCities = cityOptions
   const cityWithMostPartners = getCityWithMostPartners(data?.partnersByCity)
   const affectedPartners = data?.partnersByCity?.[adminSimulation.city] ?? 0
-  const payoutRate = adminSimulation.triggerType === 'Curfew' ? 600 : 400
+  const payoutRate = PAYOUT_RATES[selectedTriggerType?.toLowerCase()] ?? 400
   const estimatedPayout = affectedPartners * (Number(adminSimulation.daysActive) || 0) * payoutRate
 
   useEffect(() => {

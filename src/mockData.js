@@ -31,7 +31,7 @@ export const activeTrigger = {
   zone: "Connaught Place",
   reading: "Official zone suspension issued",
   orderVolumeDrop: "71%",
-  payoutAmount: 600,
+  payoutAmount: 400,
   daysTriggered: 1,
   status: "Active",
 };

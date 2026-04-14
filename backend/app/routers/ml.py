@@ -6,8 +6,12 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from ..ml_models import encoder_bundle, fraud_bundle, zone_risk_model
+from ..premium_engine import TIER_MULTIPLIERS
 
 router = APIRouter()
+
+FRAUD_HIGH_THRESHOLD = -(0.6 + 0.05)
+FRAUD_MEDIUM_THRESHOLD = -(0.5 + 0.05)
 
 CITY_HAZARD = {
     "Delhi": {"heat_days": 7.0, "rain_days": 0.75, "aqi_days": 25.0},
@@ -24,7 +28,7 @@ SEASON_WEATHER_WEIGHTS = {
 }
 
 ZONE_FLOOD_RISK = {
-    "Mahadevapura": 1.50,
+    "Mahadevapura": 1.5,
     "Sarjapur Road": 1.45,
     "Bellandur": 1.45,
     "Whitefield": 1.40,
@@ -40,11 +44,11 @@ ZONE_FLOOD_RISK = {
     "Dharavi": 1.35,
     "Kurla": 1.35,
     "Andheri": 1.30,
-    "Wadala": 1.25,
+    "Wadala": 5 / 4,
     "Parel": 1.30,
     "Khar": 1.20,
     "Bandra": 1.10,
-    "Yamuna Floodplain": 1.50,
+    "Yamuna Floodplain": 1.5,
     "ITO": 1.40,
     "Azad Market": 1.35,
     "Lajpat Nagar": 1.10,
@@ -59,7 +63,7 @@ ZONE_FLOOD_RISK = {
     "Charminar": 1.35,
     "Falaknuma": 1.35,
     "Madhapur": 1.30,
-    "HITEC City": 1.25,
+    "HITEC City": 5 / 4,
     "Begumpet": 1.20,
     "Banjara Hills": 1.05,
 }
@@ -166,13 +170,19 @@ def ml_health() -> dict[str, str]:
 def premium_quote(payload: PremiumQuoteRequest) -> PremiumQuoteResponse:
     model_input = _build_zone_risk_input(payload)
     raw_score = float(zone_risk_model.predict(model_input)[0])
-    zone_risk_score = float(np.clip(raw_score, 0.85, 1.50))
+    zone_risk_score = float(np.clip(raw_score, 0.85, 1.5))
 
     return PremiumQuoteResponse(
         zone_risk_score=zone_risk_score,
-        weekly_premium_basic=int(round(BASE_PREMIUM * zone_risk_score * 1.00)),
-        weekly_premium_standard=int(round(BASE_PREMIUM * zone_risk_score * 1.25)),
-        weekly_premium_premium=int(round(BASE_PREMIUM * zone_risk_score * 1.50)),
+        weekly_premium_basic=int(
+            round(BASE_PREMIUM * zone_risk_score * TIER_MULTIPLIERS["Basic"])
+        ),
+        weekly_premium_standard=int(
+            round(BASE_PREMIUM * zone_risk_score * TIER_MULTIPLIERS["Standard"])
+        ),
+        weekly_premium_premium=int(
+            round(BASE_PREMIUM * zone_risk_score * TIER_MULTIPLIERS["Premium"])
+        ),
         city=payload.city,
         zone=payload.zone,
     )
@@ -188,9 +198,9 @@ def fraud_score(payload: FraudScoreRequest) -> FraudScoreResponse:
     prediction = int(fraud_bundle["model"].predict(feature_values)[0])
     is_fraud_flag = prediction == -1
 
-    if anomaly_score < -0.65:
+    if anomaly_score < FRAUD_HIGH_THRESHOLD:
         confidence = "high"
-    elif anomaly_score < -0.55:
+    elif anomaly_score < FRAUD_MEDIUM_THRESHOLD:
         confidence = "medium"
     else:
         confidence = "low"
