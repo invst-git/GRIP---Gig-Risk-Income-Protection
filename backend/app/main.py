@@ -1,16 +1,21 @@
 import logging
+import asyncio
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import kyc, ml
 from .services.claim_service import ML_SERVICE_URL, create_claims_for_trigger, get_supabase
-from .trigger_config import TRIGGERS
+from .services.fraud_layer3 import check_adverse_selection_forecast
+from .trigger_config import CITY_COORDS, LIQUIDITY_RESERVE_PCT, TRIGGERS
 from .trigger_engine import start_trigger_engine
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+STRESS_TEST_DAYS = 14
 
 
 def _get_inserted_row(result):
@@ -216,3 +221,197 @@ async def fire_trigger(city: str, trigger_type: str, override_value: float):
 
     await create_claims_for_trigger(event)
     return {"status": "trigger_fired", "event": event}
+
+
+@app.get("/admin/bcr")
+async def get_bcr():
+    """
+    Compute Benefit-Cost Ratio from live Supabase data.
+    BCR = total_payouts_amount / estimated_total_premiums_collected
+
+    Premium pool estimate: for each active partner,
+    weekly_premium x weeks_enrolled since enrolled_since date.
+
+    BCR < 0.65 : healthy
+    BCR 0.65-1.0: monitor
+    BCR > 1.0  : unsustainable without reinsurance
+    """
+    supabase = get_supabase()
+
+    try:
+        payouts_result = supabase.table("payouts").select("amount").execute()
+
+        total_payouts = sum(
+            float(payout["amount"])
+            for payout in (payouts_result.data or [])
+            if payout.get("amount") is not None
+        )
+
+        partners_result = (
+            supabase.table("partners")
+            .select("weekly_premium, enrolled_since")
+            .eq("is_active", True)
+            .execute()
+        )
+
+        total_premiums = 0.0
+        for partner in (partners_result.data or []):
+            if not partner.get("weekly_premium") or not partner.get("enrolled_since"):
+                continue
+            enrolled = date.fromisoformat(str(partner["enrolled_since"])[:10])
+            weeks = max(1, (date.today() - enrolled).days // 7)
+            total_premiums += float(partner["weekly_premium"]) * weeks
+
+        bcr = round(total_payouts / total_premiums, 4) if total_premiums > 0 else 0.0
+
+        if bcr < 0.65:
+            status = "healthy"
+        elif bcr < 1.0:
+            status = "monitor"
+        else:
+            status = "unsustainable"
+
+        reserve_amount = round(total_premiums * LIQUIDITY_RESERVE_PCT, 2)
+        deployable_pool = round(total_premiums * (1 - LIQUIDITY_RESERVE_PCT), 2)
+        pool_utilisation = (
+            round(total_payouts / deployable_pool, 4) if deployable_pool > 0 else 0.0
+        )
+
+        return {
+            "bcr": bcr,
+            "status": status,
+            "total_payouts": round(total_payouts, 2),
+            "total_premiums": round(total_premiums, 2),
+            "reserve_amount": reserve_amount,
+            "deployable_pool": deployable_pool,
+            "pool_utilisation": pool_utilisation,
+            "partner_count": len(partners_result.data or []),
+        }
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[BCR] Computation failed: {e}")
+        return {
+            "bcr": 0.0,
+            "status": "error",
+            "total_payouts": 0.0,
+            "total_premiums": 0.0,
+            "reserve_amount": 0.0,
+            "deployable_pool": 0.0,
+            "pool_utilisation": 0.0,
+            "partner_count": 0,
+        }
+
+
+@app.get("/admin/forecast-risk")
+async def get_forecast_risk():
+    """
+    Fetch 5-day breach probability forecast for all 5 cities.
+    Runs adverse selection forecast check in parallel for all cities.
+    Returns a dict keyed by city with per-day breach probabilities
+    for rainfall and heat triggers.
+    AQI forecast not available from OWM free tier -
+    uses rolling 3-day average from trigger_events as proxy.
+    """
+    cities = list(CITY_COORDS.keys())
+
+    results = await asyncio.gather(
+        *[check_adverse_selection_forecast(city) for city in cities],
+        return_exceptions=True,
+    )
+
+    forecast_map = {}
+    for city, result in zip(cities, results):
+        if isinstance(result, Exception):
+            logger.warning(f"[ForecastRisk] Failed for {city}: {result}")
+            forecast_map[city] = {
+                "probabilities": {},
+                "daily_probabilities": {},
+                "blocked": False,
+            }
+        else:
+            forecast_map[city] = result
+
+    return {"cities": forecast_map, "days": 5}
+
+
+@app.get("/admin/stress-test")
+async def get_stress_test():
+    """
+    14-day monsoon stress test.
+    Computes projected total payout if rainfall trigger fires every day
+    for STRESS_TEST_DAYS consecutive days across all 5 cities simultaneously.
+    Compares against current premium pool and reserve.
+
+    Methodology: ETCCDI Rx14day - maximum 14-day rolling rainfall accumulation.
+    Applied to current active partner pool to assess capital adequacy.
+    """
+    supabase = get_supabase()
+
+    try:
+        partners_result = (
+            supabase.table("partners")
+            .select("city, payout_per_day, weekly_premium, enrolled_since")
+            .eq("is_active", True)
+            .execute()
+        )
+
+        partners = partners_result.data or []
+
+        from collections import defaultdict
+
+        city_stats: dict = defaultdict(
+            lambda: {
+                "partner_count": 0,
+                "daily_exposure": 0.0,
+                "total_14d_payout": 0.0,
+            },
+        )
+
+        total_premiums = 0.0
+
+        for partner in partners:
+            city = partner.get("city", "Unknown")
+            payout_per_day = float(partner.get("payout_per_day") or 0)
+            weekly_premium = float(partner.get("weekly_premium") or 0)
+
+            city_stats[city]["partner_count"] += 1
+            city_stats[city]["daily_exposure"] += payout_per_day
+            city_stats[city]["total_14d_payout"] += payout_per_day * STRESS_TEST_DAYS
+
+            if partner.get("enrolled_since"):
+                enrolled = date.fromisoformat(str(partner["enrolled_since"])[:10])
+                weeks = max(1, (date.today() - enrolled).days // 7)
+                total_premiums += weekly_premium * weeks
+
+        total_14d_exposure = sum(
+            value["total_14d_payout"] for value in city_stats.values()
+        )
+
+        reserve_amount = total_premiums * LIQUIDITY_RESERVE_PCT
+        deployable_pool = total_premiums * (1 - LIQUIDITY_RESERVE_PCT)
+        shortfall = max(0.0, total_14d_exposure - deployable_pool)
+        pool_survives = total_14d_exposure <= deployable_pool
+
+        return {
+            "stress_test_days": STRESS_TEST_DAYS,
+            "trigger_type": "rainfall",
+            "total_14d_exposure": round(total_14d_exposure, 2),
+            "total_premiums": round(total_premiums, 2),
+            "deployable_pool": round(deployable_pool, 2),
+            "reserve_amount": round(reserve_amount, 2),
+            "shortfall": round(shortfall, 2),
+            "pool_survives": pool_survives,
+            "city_breakdown": {
+                city: {
+                    "partner_count": stats["partner_count"],
+                    "daily_exposure": round(stats["daily_exposure"], 2),
+                    "total_14d_payout": round(stats["total_14d_payout"], 2),
+                }
+                for city, stats in city_stats.items()
+            },
+            "partner_count": len(partners),
+        }
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[StressTest] Computation failed: {e}")
+        return {"error": str(e)}

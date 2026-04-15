@@ -65,3 +65,9 @@ ORACLE_OUTLIER_PERCENTILE = 99.0
 
 # Shared
 DEFAULT_DAILY_ORDERS = 20
+
+# Liquidity reserve percentage
+# 20% of collected premiums held in reserve to cover unexpected claim spikes
+# Justification: APAC microinsurance median claims ratio is 79% (MiN 2023)
+# Reserve covers volatility above that median without reinsurance activation
+LIQUIDITY_RESERVE_PCT = 0.20

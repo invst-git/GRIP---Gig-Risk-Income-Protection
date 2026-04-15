@@ -115,6 +115,10 @@ function LoadingSkeleton() {
 export function AdminDashboardScreen() {
   const location = useLocation()
   const { data, loading, error } = useAnalyticsData()
+  const [bcr, setBcr] = useState(null)
+  const [forecastRisk, setForecastRisk] = useState(null)
+  const [stressTest, setStressTest] = useState(null)
+  const [stressLoading, setStressLoading] = useState(false)
   const [fraudIntelligence, setFraudIntelligence] = useState({
     fraudStats: [],
     modelHealth: null,
@@ -130,16 +134,61 @@ export function AdminDashboardScreen() {
     }
   }, [location.hash])
 
+  const runStressTest = async () => {
+    setStressLoading(true)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/admin/stress-test`,
+      )
+      if (!response.ok) return
+      setStressTest(await response.json())
+    } catch {
+      // fail silently
+    } finally {
+      setStressLoading(false)
+    }
+  }
+
   useEffect(() => {
     let isActive = true
 
     async function fetchFraudIntelligence() {
+      const fetchBCR = async () => {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/admin/bcr`,
+          )
+          if (!response.ok) return null
+          return await response.json()
+        } catch {
+          return null
+        }
+      }
+
+      const fetchForecastRisk = async () => {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/admin/forecast-risk`,
+          )
+          if (!response.ok) return null
+          return await response.json()
+        } catch {
+          return null
+        }
+      }
+
       const FRAUD_STATS_LOOKBACK_DAYS = 30
       const thirtyDaysAgo = new Date(
         Date.now() - FRAUD_STATS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
       ).toISOString()
 
-      const [{ data: fraudStats }, { data: modelHealth }, { data: oracleFlags }] = await Promise.all([
+      const [
+        { data: fraudStats },
+        { data: modelHealth },
+        { data: oracleFlags },
+        bcrData,
+        forecastData,
+      ] = await Promise.all([
         supabase
           .from('claims')
           .select('layer1_flag, layer2_flag, layer3_flag, flags_count, created_at')
@@ -155,10 +204,14 @@ export function AdminDashboardScreen() {
           .from('trigger_events')
           .select('single_source_breach, statistical_outlier, percentile')
           .gte('fired_at', thirtyDaysAgo),
+        fetchBCR(),
+        fetchForecastRisk(),
       ])
 
       if (!isActive) return
 
+      setBcr(bcrData)
+      setForecastRisk(forecastData)
       setFraudIntelligence({
         fraudStats: fraudStats || [],
         modelHealth: modelHealth || null,
@@ -247,6 +300,60 @@ export function AdminDashboardScreen() {
                 {analytics.lossRatio}%
               </p>
             </Card>
+            {bcr ? (
+              <div className={`rounded-xl p-4 border ${bcr.status === 'healthy' ? 'bg-green-50 border-green-200' : ''} ${bcr.status === 'monitor' ? 'bg-amber-50 border-amber-200' : ''} ${bcr.status === 'unsustainable' ? 'bg-red-50 border-red-200' : ''} ${bcr.status === 'error' ? 'bg-gray-50 border-gray-200' : ''}`}>
+                <p className="text-xs text-text-secondary uppercase tracking-widest">
+                  Benefit-Cost Ratio
+                </p>
+                <p className={`text-3xl font-semibold mt-1 ${bcr.status === 'healthy' ? 'text-green-700' : ''} ${bcr.status === 'monitor' ? 'text-amber-700' : ''} ${bcr.status === 'unsustainable' ? 'text-red-700' : ''} ${bcr.status === 'error' ? 'text-gray-400' : ''}`}>
+                  {bcr.bcr.toFixed(2)}
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Total payouts</p>
+                    <p className="text-xs font-medium">Rs {bcr.total_payouts.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Premiums collected</p>
+                    <p className="text-xs font-medium">Rs {bcr.total_premiums.toLocaleString('en-IN')}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-secondary">Active partners</p>
+                    <p className="text-xs font-medium">{bcr.partner_count}</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-current border-opacity-20">
+                  <p className="text-[10px] text-text-secondary mb-1.5 uppercase tracking-widest">
+                    Liquidity reserve (20%)
+                  </p>
+                  <div className="flex gap-3">
+                    <div>
+                      <p className="text-[10px] text-text-secondary">Reserve held</p>
+                      <p className="text-xs font-medium">
+                        Rs {bcr.reserve_amount?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-text-secondary">Deployable pool</p>
+                      <p className="text-xs font-medium">
+                        Rs {bcr.deployable_pool?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-text-secondary">Pool utilisation</p>
+                      <p className="text-xs font-medium">
+                        {((bcr.pool_utilisation || 0) * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className={`text-xs mt-2 capitalize ${bcr.status === 'healthy' ? 'text-green-600' : ''} ${bcr.status === 'monitor' ? 'text-amber-600' : ''} ${bcr.status === 'unsustainable' ? 'text-red-600' : ''}`}>
+                  {bcr.status === 'healthy' ? 'Pool is financially sustainable' : ''}
+                  {bcr.status === 'monitor' ? 'Monitor closely — approaching break-even' : ''}
+                  {bcr.status === 'unsustainable' ? 'Payouts exceed premiums — reinsurance required' : ''}
+                </p>
+              </div>
+            ) : null}
           </section>
 
           <section className="space-y-3">
@@ -310,6 +417,199 @@ export function AdminDashboardScreen() {
                 </div>
               ))}
             </div>
+          </section>
+
+          {forecastRisk ? (
+            <section className="space-y-3">
+              <h3 className="text-[15px] font-semibold text-text-primary">
+                5-Day Disruption Forecast
+              </h3>
+              {(() => {
+                const firstCity = Object.keys(forecastRisk.cities || {})[0]
+                if (!firstCity) {
+                  return (
+                    <Card className="border-white/80">
+                      <p className="text-[13px] text-text-secondary">No forecast data available.</p>
+                    </Card>
+                  )
+                }
+
+                const days = Object.keys(
+                  forecastRisk.cities[firstCity]?.daily_probabilities || {},
+                ).sort()
+                const cities = Object.keys(forecastRisk.cities || {})
+
+                const cellColor = (prob) => {
+                  if (prob >= 0.6) return 'bg-red-500'
+                  if (prob >= 0.3) return 'bg-amber-400'
+                  return 'bg-green-400'
+                }
+
+                const cellOpacity = (prob) => (
+                  prob >= 0.6 ? 'opacity-90'
+                    : prob >= 0.3 ? 'opacity-70' : 'opacity-50'
+                )
+
+                return (
+                  <Card className="border-white/80">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr>
+                            <th className="text-left text-text-secondary font-normal pb-2 pr-3">
+                              City
+                            </th>
+                            {days.map((day) => (
+                              <th
+                                key={day}
+                                className="text-center text-text-secondary font-normal pb-2 px-1"
+                              >
+                                {new Date(day).toLocaleDateString('en-IN', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cities.map((city) => {
+                            const cityData = forecastRisk.cities[city]
+                            const daily = cityData?.daily_probabilities || {}
+
+                            return (
+                              <tr key={city}>
+                                <td className="text-text-primary pr-3 py-1 font-medium">
+                                  {city}
+                                </td>
+                                {days.map((day) => {
+                                  const dayData = daily[day] || {}
+                                  const maxProb = Math.max(
+                                    dayData.rainfall || 0,
+                                    dayData.heat || 0,
+                                  )
+                                  return (
+                                    <td key={day} className="px-1 py-1 text-center">
+                                      <div
+                                        className={`rounded-md py-1.5 px-1 ${cellColor(maxProb)} ${cellOpacity(maxProb)} text-white font-medium`}
+                                        title={
+                                          `Rain: ${((dayData.rainfall || 0) * 100).toFixed(0)}% ` +
+                                          `Heat: ${((dayData.heat || 0) * 100).toFixed(0)}%`
+                                        }
+                                      >
+                                        {maxProb >= 0.6 ? 'High' : maxProb >= 0.3 ? 'Med' : 'Low'}
+                                      </div>
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      <p className="text-[10px] text-text-secondary mt-2">
+                        Hover cells for rainfall and heat breakdown. Red = high risk (&gt;60%), Amber = medium (30-60%), Green = low (&lt;30%).
+                      </p>
+                    </div>
+                  </Card>
+                )
+              })()}
+            </section>
+          ) : null}
+
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-text-primary">
+                14-Day Monsoon Stress Test
+              </h3>
+              <button
+                onClick={runStressTest}
+                disabled={stressLoading}
+                className="rounded-lg border border-border-default px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-bg-surface disabled:opacity-50"
+              >
+                {stressLoading ? 'Running...' : 'Run Stress Test'}
+              </button>
+            </div>
+
+            {!stressTest ? (
+              <div className="rounded-xl border border-dashed border-border-default p-6 text-center">
+                <p className="text-sm text-text-secondary">
+                  Simulates rainfall trigger firing every day for 14 consecutive days
+                  across all 5 cities simultaneously.
+                </p>
+                <p className="mt-1 text-xs text-text-secondary opacity-60">
+                  ETCCDI Rx14day methodology
+                </p>
+              </div>
+            ) : null}
+
+            {stressTest && !stressTest.error ? (
+              <div className={`rounded-xl border p-4 ${stressTest.pool_survives ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${stressTest.pool_survives ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <p className={`text-sm font-medium ${stressTest.pool_survives ? 'text-green-700' : 'text-red-700'}`}>
+                    {stressTest.pool_survives
+                      ? 'Pool survives 14-day monsoon scenario'
+                      : 'Pool requires reinsurance for 14-day monsoon scenario'}
+                  </p>
+                </div>
+
+                <div className="mb-3 grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      label: '14-day total exposure',
+                      value: `Rs ${stressTest.total_14d_exposure?.toLocaleString('en-IN')}`,
+                      sub: `${stressTest.partner_count} partners × ${stressTest.stress_test_days} days`,
+                    },
+                    {
+                      label: 'Deployable pool',
+                      value: `Rs ${stressTest.deployable_pool?.toLocaleString('en-IN')}`,
+                      sub: '80% of collected premiums',
+                    },
+                    {
+                      label: 'Reserve held',
+                      value: `Rs ${stressTest.reserve_amount?.toLocaleString('en-IN')}`,
+                      sub: '20% liquidity buffer',
+                    },
+                    {
+                      label: stressTest.pool_survives ? 'Surplus' : 'Shortfall',
+                      value: `Rs ${stressTest.shortfall?.toLocaleString('en-IN')}`,
+                      sub: stressTest.pool_survives
+                        ? 'Within pool capacity'
+                        : 'Reinsurance layer required',
+                    },
+                  ].map(({ label, value, sub }) => (
+                    <div key={label} className="rounded-lg bg-white bg-opacity-60 p-3">
+                      <p className="text-[10px] text-text-secondary">{label}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-text-primary">
+                        {value}
+                      </p>
+                      <p className="text-[10px] text-text-secondary opacity-70">{sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <p className="mb-2 text-[10px] uppercase tracking-widest text-text-secondary">
+                    Per-city exposure
+                  </p>
+                  {Object.entries(stressTest.city_breakdown || {}).map(([city, stats]) => (
+                    <div
+                      key={city}
+                      className="flex items-center justify-between border-b border-current border-opacity-10 py-1.5 last:border-0"
+                    >
+                      <span className="text-xs text-text-primary">{city}</span>
+                      <span className="text-xs text-text-secondary">
+                        {stats.partner_count} partners
+                      </span>
+                      <span className="text-xs font-medium text-text-primary">
+                        Rs {stats.total_14d_payout?.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="space-y-3">
@@ -434,9 +734,16 @@ export function AdminDashboardScreen() {
                           {formatDateTime(item.fired_at)}
                         </p>
                       </div>
-                      <p className="text-[15px] font-semibold text-accent-primary">
-                        {`${item.raw_value}${formatTriggerUnit(item.trigger_type) ? ` ${formatTriggerUnit(item.trigger_type)}` : ''}`}
-                      </p>
+                      <div className="flex flex-col items-end gap-2">
+                        <p className="text-[15px] font-semibold text-accent-primary">
+                          {`${item.raw_value}${formatTriggerUnit(item.trigger_type) ? ` ${formatTriggerUnit(item.trigger_type)}` : ''}`}
+                        </p>
+                        {item.percentile !== null && item.percentile !== undefined ? (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.percentile >= 90 ? 'bg-red-100 text-red-700' : ''} ${item.percentile >= 70 && item.percentile < 90 ? 'bg-amber-100 text-amber-700' : ''} ${item.percentile < 70 ? 'bg-green-100 text-green-700' : ''}`}>
+                            {item.percentile}th percentile
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <p className="mt-2 text-[12px] text-text-secondary">
                       {formatMetricNumber(analytics.partnersByCity[item.city] || 0)} active partners

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 import httpx
 
+from .. import trigger_config as _trigger_config
 from ..trigger_config import (
     ADVERSE_SELECTION_ENROLLMENT_DAYS,
     ADVERSE_SELECTION_FORECAST_THRESHOLD,
@@ -25,6 +26,95 @@ from ..trigger_config import (
 logger = logging.getLogger(__name__)
 
 OWM_API_KEY = os.getenv("OWM_API_KEY", "")
+OPEN_METEO_TIMEOUT_SECONDS = getattr(_trigger_config, "OPEN_METEO_TIMEOUT_SECONDS", 8.0)
+OPEN_METEO_BASE_URL = getattr(
+    _trigger_config,
+    "OPEN_METEO_BASE_URL",
+    "https://api.open-meteo.com/v1/forecast",
+)
+
+
+async def get_open_meteo_reading(
+    city: str,
+    trigger_type: str,
+) -> float | None:
+    """
+    Fetch current weather reading from Open-Meteo for the given city
+    and trigger type. Used as a second source for oracle cross-validation
+    of rainfall and heat triggers.
+
+    Open-Meteo uses NOAA GFS model - a completely independent pipeline
+    from OpenWeatherMap, making agreement between the two sources
+    meaningful corroboration.
+
+    Returns the relevant metric value or None if the call fails.
+    Failure always returns None - never raises.
+
+    Supported trigger types:
+        rainfall: 24h rain accumulation in mm (hourly rain sum, 24 slots)
+        heat:     daily maximum temperature in Celsius
+    """
+    if trigger_type not in ("rainfall", "heat"):
+        return None
+
+    coords = CITY_COORDS.get(city)
+    if not coords:
+        return None
+
+    lat = coords["lat"]
+    lon = coords["lon"]
+
+    params: dict = {
+        "latitude": lat,
+        "longitude": lon,
+        "timezone": "Asia/Kolkata",
+    }
+
+    if trigger_type == "rainfall":
+        params["hourly"] = "rain"
+        params["forecast_days"] = 1
+    elif trigger_type == "heat":
+        params["daily"] = "temperature_2m_max"
+        params["forecast_days"] = 1
+
+    try:
+        async with httpx.AsyncClient(timeout=OPEN_METEO_TIMEOUT_SECONDS) as client:
+            resp = await client.get(OPEN_METEO_BASE_URL, params=params)
+            resp.raise_for_status()
+
+        data = resp.json()
+
+        if trigger_type == "rainfall":
+            hourly_rain = data.get("hourly", {}).get("rain", [])
+            if not hourly_rain:
+                return None
+            total_rain = round(
+                sum(float(value) for value in hourly_rain if value is not None),
+                2,
+            )
+            logger.info(
+                f"[Layer3/OpenMeteo] {city} rainfall 24h accumulation: {total_rain}mm"
+            )
+            return total_rain
+
+        if trigger_type == "heat":
+            daily_max = data.get("daily", {}).get("temperature_2m_max", [])
+            if not daily_max or daily_max[0] is None:
+                return None
+            temp_max = round(float(daily_max[0]), 2)
+            logger.info(
+                f"[Layer3/OpenMeteo] {city} temp_max today: {temp_max}°C"
+            )
+            return temp_max
+
+    except Exception as e:
+        logger.warning(
+            f"[Layer3/OpenMeteo] Failed to fetch {trigger_type} for {city}: {e} "
+            f"- oracle cross-validation will be skipped for this trigger"
+        )
+        return None
+
+    return None
 
 
 async def check_adverse_selection_forecast(city: str) -> dict:
@@ -40,7 +130,12 @@ async def check_adverse_selection_forecast(city: str) -> dict:
     """
     coords = CITY_COORDS.get(city)
     if not coords or not OWM_API_KEY:
-        return {"blocked": False, "probabilities": {}, "clearance_date": None}
+        return {
+            "blocked": False,
+            "probabilities": {},
+            "clearance_date": None,
+            "daily_probabilities": {},
+        }
 
     lat = coords["lat"]
     lon = coords["lon"]
@@ -63,7 +158,12 @@ async def check_adverse_selection_forecast(city: str) -> dict:
 
     except Exception as e:
         logger.error(f"[Layer3] OWM forecast failed for {city}: {e}")
-        return {"blocked": False, "probabilities": {}, "clearance_date": None}
+        return {
+            "blocked": False,
+            "probabilities": {},
+            "clearance_date": None,
+            "daily_probabilities": {},
+        }
 
     slots = forecast.get("list", [])
 
@@ -89,6 +189,22 @@ async def check_adverse_selection_forecast(city: str) -> dict:
         for trigger, count in breach_days.items()
     }
 
+    daily_probabilities = {}
+    for day, day_slots in days.items():
+        daily_rain = sum(s.get("rain", {}).get("3h", 0.0) for s in day_slots)
+        max_temp = max(s["main"].get("temp_max", 0.0) for s in day_slots)
+
+        rain_prob = min(round(daily_rain / TRIGGER_THRESHOLDS["rainfall"], 3), 1.0)
+        heat_prob = min(
+            round(max(0.0, max_temp - 38.0) / (TRIGGER_THRESHOLDS["heat"] - 38.0), 3),
+            1.0,
+        )
+
+        daily_probabilities[day] = {
+            "rainfall": rain_prob,
+            "heat": heat_prob,
+        }
+
     blocked = any(
         probability >= ADVERSE_SELECTION_FORECAST_THRESHOLD
         for probability in probabilities.values()
@@ -109,6 +225,7 @@ async def check_adverse_selection_forecast(city: str) -> dict:
         "blocked": blocked,
         "probabilities": probabilities,
         "clearance_date": clearance_date,
+        "daily_probabilities": daily_probabilities,
     }
 
 
@@ -131,11 +248,25 @@ async def oracle_integrity_check(
     threshold = TRIGGER_THRESHOLDS.get(trigger_type, 9999)
     owm_breach = raw_value >= threshold
 
-    cpcb_breach = cpcb_value is not None and cpcb_value >= threshold
+    second_source_value: float | None = None
+
+    if trigger_type == "aqi":
+        second_source_value = cpcb_value
+    elif trigger_type in ("rainfall", "heat"):
+        second_source_value = await get_open_meteo_reading(city, trigger_type)
+    elif trigger_type == "curfew":
+        second_source_value = None
+
+    second_source_breach = (
+        second_source_value is not None
+        and second_source_value >= threshold
+    )
 
     single_source_breach = False
-    if cpcb_value is not None:
-        single_source_breach = owm_breach != cpcb_breach
+    if second_source_value is not None:
+        single_source_breach = owm_breach != second_source_breach
+
+    cpcb_value = second_source_value
 
     percentile = None
     outlier = False
