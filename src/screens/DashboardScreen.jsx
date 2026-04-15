@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BellIcon, DotIcon, WarningIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
@@ -5,6 +6,7 @@ import { StaggerGroup } from '../components/StaggerGroup'
 import { Card, GRIPLogo, ProgressBar, StatusBadge } from '../components/ui'
 import { useGRIP } from '../context/GRIPContext'
 import { useClaimsData } from '../hooks/useClaimsData'
+import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 
 function StatPill({ label, value }) {
@@ -87,13 +89,55 @@ function getRiskDescriptor(value) {
   return 'Low'
 }
 
+async function fetchEarningsProtected(partnerId) {
+  try {
+    const { data } = await supabase
+      .from('payouts')
+      .select('amount')
+      .eq('partner_id', partnerId)
+      .eq('status', 'processed')
+
+    const total = (data || []).reduce(
+      (sum, payout) => sum + parseFloat(payout.amount || 0),
+      0,
+    )
+    return Math.round(total)
+  } catch {
+    return 0
+  }
+}
+
+function getZoneRiskLabel(score, zone, city) {
+  if (!score) return null
+
+  const normalised = Math.round(
+    ((score - 0.85) / (1.50 - 0.85)) * 100,
+  )
+
+  const level = normalised >= 75
+    ? { label: 'High risk zone', color: 'text-red-600', bg: 'bg-red-50 border-red-200' }
+    : normalised >= 40
+      ? { label: 'Medium risk zone', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' }
+      : { label: 'Low risk zone', color: 'text-green-600', bg: 'bg-green-50 border-green-200' }
+
+  const description = normalised >= 75
+    ? `${zone} is among the highest-risk zones in ${city} for weather disruptions`
+    : normalised >= 40
+      ? `${zone} has moderate weather disruption risk in ${city}`
+      : `${zone} is among the lower-risk zones in ${city} for weather disruptions`
+
+  return { ...level, description, percentile: normalised }
+}
+
 export function DashboardScreen() {
   const navigate = useNavigate()
   const { registrationResult, profile, activeTrigger } = useGRIP()
   const { claims, loading } = useClaimsData()
+  const [earningsProtected, setEarningsProtected] = useState(0)
   const partner = registrationResult?.partner
   const city = partner?.city || profile?.city || 'your city'
   const score = parseFloat(partner?.zone_risk_score || profile?.zoneRiskScore || 1.0)
+  const zone = partner?.operating_zone || profile?.zone || 'your zone'
   const baseline = CITY_HAZARD_PROFILE[city] || CITY_HAZARD_PROFILE.Delhi
   const seasons = CITY_SEASON_LABELS[city] || CITY_SEASON_LABELS.Delhi
   const multiplier = Math.min(score / 1.0, 1.5)
@@ -118,6 +162,26 @@ export function DashboardScreen() {
     },
   ]
   const recentClaims = claims.slice(0, 3)
+  const riskLabel = getZoneRiskLabel(
+    partner?.zone_risk_score,
+    zone,
+    city,
+  )
+  const protectedSinceSource = partner?.enrolled_since || partner?.created_at
+  const protectedSinceLabel = protectedSinceSource
+    ? new Date(protectedSinceSource).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    : 'today'
+
+  useEffect(() => {
+    async function loadEarningsProtected() {
+      if (partner?.id) {
+        const total = await fetchEarningsProtected(partner.id)
+        setEarningsProtected(total)
+      }
+    }
+
+    loadEarningsProtected()
+  }, [partner?.id])
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-hidden">
@@ -143,6 +207,18 @@ export function DashboardScreen() {
       <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <StaggerGroup className="space-y-6">
           <div className="space-y-3">
+            <div className="mb-4 rounded-2xl bg-[#1a2e4a] px-5 py-4">
+              <p className="mb-1 text-xs uppercase tracking-widest text-white/60">
+                Earnings protected
+              </p>
+              <p className="text-3xl font-semibold text-white">
+                Rs {earningsProtected.toLocaleString('en-IN')}
+              </p>
+              <p className="mt-1 text-xs text-white/50">
+                Total received since {protectedSinceLabel}
+              </p>
+            </div>
+
             <Card className="relative overflow-hidden border-white/80">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(95,127,174,0.18)_0%,rgba(95,127,174,0.06)_36%,rgba(255,255,255,0)_72%)]" />
               <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[rgba(47,122,99,0.08)] blur-3xl" />
@@ -161,9 +237,37 @@ export function DashboardScreen() {
                       </span>{' '}
                       auto-renews Monday
                     </p>
+                    <p className="text-[13px] text-text-secondary">
+                      {zone}, {city}
+                    </p>
                   </div>
                   <StatusBadge status="active" label="Active" />
                 </div>
+
+                {riskLabel ? (
+                  <div className={`mt-3 rounded-xl border px-4 py-3 ${riskLabel.bg}`}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className={`text-xs font-medium ${riskLabel.color}`}>
+                        {riskLabel.label}
+                      </span>
+                      <span className={`text-xs ${riskLabel.color}`}>
+                        Score {Number(partner?.zone_risk_score || 0).toFixed(2)}x
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-text-secondary">
+                      {riskLabel.description}
+                    </p>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className={`h-full rounded-full transition-all ${riskLabel.percentile >= 75 ? 'bg-red-500' : ''} ${riskLabel.percentile >= 40 && riskLabel.percentile < 75 ? 'bg-amber-400' : ''} ${riskLabel.percentile < 40 ? 'bg-green-500' : ''}`}
+                        style={{ width: `${riskLabel.percentile}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-text-secondary opacity-60">
+                      Higher score = higher weekly premium + higher payout per disruption day
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="grid grid-cols-2 gap-3">
                   <StatPill

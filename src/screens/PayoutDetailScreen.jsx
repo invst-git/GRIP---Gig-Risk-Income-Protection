@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { DotIcon } from '../components/icons'
 import { PageTransition } from '../components/PageTransition'
 import { StaggerGroup } from '../components/StaggerGroup'
 import { Toast } from '../components/Toast'
@@ -64,6 +63,77 @@ function formatAnomalyScore(value) {
 
   if (Number.isNaN(numericValue)) return 'N/A'
   return numericValue.toFixed(2)
+}
+
+function formatTimelineTimestamp(timestamp) {
+  if (!timestamp) return null
+
+  const parsedDate = new Date(timestamp)
+  if (Number.isNaN(parsedDate.getTime())) return null
+
+  return parsedDate.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+function buildClaimTimeline(claim, payout) {
+  const stages = []
+
+  stages.push({
+    key: 'trigger',
+    label: 'Trigger confirmed',
+    sublabel: `${getTriggerLabel(claim.trigger_type)} threshold breached`,
+    timestamp: claim.created_at,
+    status: 'done',
+  })
+
+  stages.push({
+    key: 'fraud',
+    label: 'Fraud assessment',
+    sublabel: claim.fraud_flag
+      ? `Flagged - anomaly score ${Number(claim.anomaly_score || 0).toFixed(3)}`
+      : `Passed - anomaly score ${Number(claim.anomaly_score || 0).toFixed(3)}`,
+    timestamp: claim.created_at,
+    status: claim.fraud_flag ? 'flagged' : 'done',
+  })
+
+  stages.push({
+    key: 'decision',
+    label: claim.fraud_flag ? 'Held for review' : claim.auto_approved ? 'Auto-approved' : 'Approved',
+    sublabel: claim.fraud_flag
+      ? 'Claim requires manual review before payout'
+      : `Processed in ${
+        claim.claim_latency_seconds
+          ? `${Math.round(claim.claim_latency_seconds)}s`
+          : 'under 2s'
+      }`,
+    timestamp: claim.created_at,
+    status: claim.fraud_flag ? 'flagged' : 'done',
+  })
+
+  if (claim.status === 'paid' && payout) {
+    stages.push({
+      key: 'payout',
+      label: 'Payout initiated',
+      sublabel: `Rs ${payout.amount} - ${payout.razorpay_payout_id}`,
+      timestamp: payout.settled_at,
+      status: 'done',
+    })
+  } else if (claim.status === 'fraud_review') {
+    stages.push({
+      key: 'payout',
+      label: 'Payout pending review',
+      sublabel: 'Will be released once review is complete',
+      timestamp: null,
+      status: 'pending',
+    })
+  }
+
+  return stages
 }
 
 function LoadingSkeleton() {
@@ -202,39 +272,7 @@ export function PayoutDetailScreen() {
     city: profile.city,
   }
   const amountPaid = payout?.amount ?? claim?.payout_amount ?? 0
-  const timeline = [
-    {
-      title: `${getTriggerLabel(claim?.trigger_type)} threshold breached`,
-      date: formatDateTime(triggerEvent?.fired_at ?? claim?.created_at),
-      description: triggerEvent
-        ? `${formatTriggerDescription(
-            triggerEvent,
-            claim?.trigger_type,
-          )}. Source: ${triggerEvent.data_source}.`
-        : `${getTriggerLabel(claim?.trigger_type)} was recorded automatically for your city.`,
-    },
-    {
-      title: 'Claim created',
-      date: formatDateTime(claim?.created_at),
-      description: `${claim?.claim_number} was created automatically for your policy.`,
-    },
-    {
-      title: claim?.fraud_flag ? 'Sent for manual review' : 'Auto-approved',
-      date: formatDateTime(claim?.created_at),
-      description: claim?.fraud_flag
-        ? `Anomaly score ${formatAnomalyScore(claim?.anomaly_score)} triggered manual review.`
-        : `Fraud checks cleared automatically with anomaly score ${formatAnomalyScore(
-            claim?.anomaly_score,
-          )}.`,
-    },
-    {
-      title: payout ? 'Payout settled' : 'Payout pending',
-      date: formatDateTime(payout?.settled_at ?? claim?.resolved_at ?? claim?.created_at),
-      description: payout
-        ? `${formatCurrency(amountPaid)} sent to ${partner?.upi_id}. Reference ${payout.razorpay_payout_id}.`
-        : 'Payout has not been settled yet.',
-    },
-  ]
+  const timeline = buildClaimTimeline(claim, payout)
 
   function handleDownloadReceipt() {
     const receiptLines = [
@@ -305,27 +343,47 @@ export function PayoutDetailScreen() {
           </div>
 
           <Card className="space-y-5">
-            <h3 className="text-[15px] font-semibold text-text-primary">Payout Timeline</h3>
-            <div className="space-y-5">
-              {timeline.map((item, index) => (
-                <div key={item.title} className="flex gap-4">
-                  <div className="flex w-5 flex-col items-center">
-                    <span className="text-accent-success">
-                      <DotIcon className="h-3 w-3" />
-                    </span>
-                    {index < timeline.length - 1 ? (
-                      <span className="mt-2 w-px flex-1 bg-border-default" />
-                    ) : null}
+            <p className="text-xs uppercase tracking-widest text-text-secondary">
+              Claim timeline
+            </p>
+            <div className="flex flex-col gap-0">
+              {timeline.map((stage, index) => {
+                const dotColor = stage.status === 'done'
+                  ? 'bg-green-500'
+                  : stage.status === 'flagged' || stage.status === 'pending'
+                    ? 'bg-amber-500'
+                    : 'bg-gray-300'
+
+                return (
+                  <div key={stage.key} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`mt-0.5 h-3 w-3 flex-shrink-0 rounded-full ${dotColor}`} />
+                      {index < timeline.length - 1 ? (
+                        <div className="my-1 min-h-[20px] w-px flex-1 bg-border-default" />
+                      ) : null}
+                    </div>
+
+                    <div className={`${index === timeline.length - 1 ? 'pb-0' : 'pb-4'}`}>
+                      <p className="text-sm font-medium leading-tight text-text-primary">
+                        {stage.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-secondary">
+                        {stage.sublabel}
+                      </p>
+                      {stage.timestamp ? (
+                        <p className="mt-0.5 text-[10px] text-text-secondary opacity-60">
+                          {formatTimelineTimestamp(stage.timestamp)}
+                        </p>
+                      ) : null}
+                      {!stage.timestamp && stage.status === 'pending' ? (
+                        <p className="mt-0.5 text-[10px] text-amber-500">
+                          Awaiting review
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="space-y-1 pb-1">
-                    <p className="text-[14px] font-semibold text-text-primary">{item.title}</p>
-                    <p className="text-[12px] text-text-secondary">{item.date}</p>
-                    <p className="text-[13px] leading-6 text-text-secondary">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </Card>
 
