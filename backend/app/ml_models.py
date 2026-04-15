@@ -10,4 +10,4 @@ def _load(filename):
 
 zone_risk_model  = _load("zone_risk_model.pkl")
 encoder_bundle   = _load("encoder.pkl")   # dict with keys: encoder, cat_features, num_features
-fraud_bundle     = _load("fraud_model.pkl")  # dict with keys: model, features
+fraud_bundle = _load("fraud_model_v2.pkl")  # dict with keys: model, features

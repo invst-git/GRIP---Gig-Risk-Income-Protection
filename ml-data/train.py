@@ -1,13 +1,3 @@
-"""
-GRIP Model Trainer
-Trains:
-  1. XGBoost Zone Risk Scorer        -> models/zone_risk_model.pkl
-  2. Isolation Forest Fraud Detector -> models/fraud_model.pkl
-  3. Feature encoder                 -> models/encoder.pkl
-
-Run after data_generator.py
-"""
-
 from pathlib import Path
 import pickle
 import math
@@ -267,13 +257,14 @@ def train_fraud_model():
         f"{df['is_fraud'].sum():,} fraud ({actual_fraud_rate * 100:.2f}%)"
     )
 
-    model = IsolationForest(
-        n_estimators=200,
-        contamination=actual_fraud_rate,
-        max_features=0.8,
-        random_state=42,
-        n_jobs=-1,
-    )
+    model =IsolationForest(
+    n_estimators=200,
+    max_samples=256,
+    contamination=0.01,
+    max_features=0.8,
+    random_state=42,
+    n_jobs=-1,
+   )
     model.fit(x_train)
 
     raw_preds = model.predict(x_valid)
@@ -307,9 +298,9 @@ def train_fraud_model():
         f"delta: {legit_med - fraud_med:.4f}"
     )
 
-    with open(MODELS_DIR / "fraud_model.pkl", "wb") as file:
+    with open(MODELS_DIR / "fraud_model_v2.pkl", "wb") as file:
         pickle.dump({"model": model, "features": FRAUD_FEATURES}, file)
-    print("\n[Fraud] Saved -> models/fraud_model.pkl")
+    print("\n[Fraud] Saved -> models/fraud_model_v2.pkl")
     return model
 
 
