@@ -131,7 +131,7 @@ async def check_ip_duplication(registration_ip: str, supabase) -> dict:
     Returns flag=True if count exceeds IP_REGISTRATION_LIMIT_30D.
     Private and localhost IPs are never flagged.
     """
-    private_prefixes = ("127.", "192.168.", "10.", "::1", "")
+    private_prefixes = ("127.", "192.168.", "10.", "::1")
     if any(registration_ip.startswith(prefix) for prefix in private_prefixes):
         return {
             "ip_registrations_30d": 0,
