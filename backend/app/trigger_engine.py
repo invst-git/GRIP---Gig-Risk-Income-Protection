@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .services.aqi_service import get_city_aqi
 from .services.claim_service import create_claims_for_trigger, get_supabase
+from .services.fraud_psi import run_psi_monitor
 from .services.weather_service import get_current_weather
 from .trigger_config import CITY_COORDS, TRIGGERS
 
@@ -190,6 +191,11 @@ async def poll_all_cities():
     logger.info("[TriggerEngine] Polling all cities at %s", datetime.now(UTC).isoformat())
     for city in CITY_COORDS:
         await evaluate_city(city)
+
+    try:
+        await run_psi_monitor(get_supabase())
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[TriggerEngine] PSI monitor failed: %s", exc)
 
 
 def start_trigger_engine(app):

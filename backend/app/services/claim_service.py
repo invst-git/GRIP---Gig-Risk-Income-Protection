@@ -1,13 +1,24 @@
 import logging
 import os
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date as date_type, datetime, timedelta, timezone
 from functools import lru_cache
 
 import httpx
 from supabase import Client, create_client
 
-from ..trigger_config import FIRST_PAYOUT_CAP, PAYOUT_RATES
+from ..ml_config import (
+    FRAUD_DEFAULT_CANCELLATION_RATIO,
+    FRAUD_DEFAULT_FNOL_DELTA_HOURS_MINIMUM,
+    FRAUD_DEFAULT_NETWORK_REUSE_COUNT,
+    FRAUD_DEFAULT_NOCTURNAL_FRACTION,
+)
+from ..trigger_config import (
+    ADVERSE_SELECTION_ENROLLMENT_DAYS,
+    DEFAULT_DAILY_ORDERS,
+    FIRST_PAYOUT_CAP,
+    PAYOUT_RATES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,22 +145,85 @@ async def create_claims_for_trigger(trigger_event: dict):
         )
         prior_claims_30d = prior_result.count or 0
 
+        trigger_timestamp = (
+            trigger_event.get("created_at")
+            or trigger_event.get("fired_at")
+            or datetime.now(tz=timezone.utc).isoformat()
+        )
+        trigger_created_at = datetime.fromisoformat(
+            trigger_timestamp.replace("Z", "+00:00")
+        )
+        claim_created_at = datetime.now(tz=timezone.utc)
+        claim_latency_secs = max(
+            0.0,
+            round((claim_created_at - trigger_created_at).total_seconds(), 2),
+        )
+
+        recent_activity = (
+            supabase.table("partner_activity_log")
+            .select("orders_completed")
+            .eq("partner_id", partner["id"])
+            .order("week_start", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if recent_activity.data:
+            daily_avg = recent_activity.data[0]["orders_completed"] / 6
+            prior_orders_48h = int(daily_avg * 2)
+        else:
+            prior_orders_48h = DEFAULT_DAILY_ORDERS
+
+        enrolled_since_value = partner.get("enrolled_since") or partner.get("created_at")
+        enrolled_since = date_type.fromisoformat(str(enrolled_since_value)[:10])
+        days_since_enrollment = (date_type.today() - enrolled_since).days
+
+        kl_divergence = compute_activity_kl_divergence(partner["id"], supabase)
+        zone_match = 0 if partner.get("zone_coordinates_flag") else 1
+
         fraud_features = {
-            "claim_lag_hours": 0.25,
-            "prior_orders_48h": partner.get("avg_daily_orders", 15),
-            "claim_hour": datetime.now(UTC).hour,
+            "claim_lag_hours": round(claim_latency_secs / 3600, 4),
+            "prior_orders_48h": prior_orders_48h,
+            "claim_hour": claim_created_at.hour,
             "prior_claims_30d": prior_claims_30d,
+            "activity_kl_divergence": kl_divergence,
+            "days_since_enrollment": days_since_enrollment,
+            "zone_coordinates_flag": 1 if partner.get("zone_coordinates_flag") else 0,
+            "zone_match": zone_match,
             "device_returning": 1,
-            "zone_match": 1,
             "device_tampered": 0,
-            "nocturnal_fraction": 0.10,
-            "cancellation_ratio": 0.05,
-            "network_reuse_count": 0,
-            "fnol_last_trip_delta_hours": 1.0,
-            "activity_kl_divergence": compute_activity_kl_divergence(partner["id"], supabase),
+            "nocturnal_fraction": FRAUD_DEFAULT_NOCTURNAL_FRACTION,
+            "cancellation_ratio": FRAUD_DEFAULT_CANCELLATION_RATIO,
+            "network_reuse_count": FRAUD_DEFAULT_NETWORK_REUSE_COUNT,
+            "fnol_last_trip_delta_hours": max(
+                FRAUD_DEFAULT_FNOL_DELTA_HOURS_MINIMUM,
+                claim_latency_secs / 3600,
+            ),
         }
 
         fraud_result = await call_fraud_score(fraud_features)
+
+        layer1_flag = bool(
+            partner.get("zone_coordinates_flag")
+            or partner.get("identity_duplication_flag")
+            or partner.get("enrollment_trigger_count", 0) > 0
+        )
+        layer2_flag = bool(fraud_result.get("is_fraud_flag"))
+        layer3_flag = bool(
+            days_since_enrollment < ADVERSE_SELECTION_ENROLLMENT_DAYS
+            and partner.get("enrollment_trigger_count", 0) > 0
+        )
+        flags_count = sum([layer1_flag, layer2_flag, layer3_flag])
+
+        if flags_count >= 2:
+            claim_status = "fraud_review"
+            auto_approved = False
+        elif flags_count == 1:
+            claim_status = "approved"
+            auto_approved = True
+        else:
+            claim_status = "approved"
+            auto_approved = True
 
         claim_data = {
             "partner_id": partner["id"],
@@ -157,13 +231,20 @@ async def create_claims_for_trigger(trigger_event: dict):
             "trigger_event_id": trigger_event["id"],
             "claim_number": claim_number,
             "trigger_type": trigger_event["trigger_type"],
-            "status": "fraud_review" if fraud_result["is_fraud_flag"] else "approved",
+            "status": claim_status,
             "payout_amount": payout_rate,
             "fraud_score": fraud_result["anomaly_score"],
             "fraud_flag": fraud_result["is_fraud_flag"],
             "anomaly_score": fraud_result["anomaly_score"],
-            "auto_approved": not fraud_result["is_fraud_flag"],
-            "created_at": datetime.now(UTC).isoformat(),
+            "auto_approved": auto_approved,
+            "claim_latency_seconds": claim_latency_secs,
+            "days_since_enrollment": days_since_enrollment,
+            "layer1_flag": layer1_flag,
+            "layer2_flag": layer2_flag,
+            "layer3_flag": layer3_flag,
+            "flags_count": flags_count,
+            "activity_kl_divergence": kl_divergence,
+            "created_at": claim_created_at.isoformat(),
         }
         claim_result = supabase.table("claims").insert(claim_data).execute()
         claim = _get_inserted_row(claim_result)
@@ -173,7 +254,7 @@ async def create_claims_for_trigger(trigger_event: dict):
 
         created_claims.append(claim)
 
-        if not fraud_result["is_fraud_flag"]:
+        if claim_status != "fraud_review":
             await initiate_payout(claim, partner)
 
     return created_claims

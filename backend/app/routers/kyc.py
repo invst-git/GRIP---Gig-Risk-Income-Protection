@@ -2,11 +2,13 @@ import os
 import re
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from supabase import create_client
 
 from ..services.activity_service import seed_partner_baseline
+from ..services.fraud_layer1 import run_layer1
+from ..services.fraud_layer3 import check_adverse_selection_forecast
 
 router = APIRouter()
 
@@ -180,12 +182,43 @@ async def verify_rc(req: RCRequest):
 @router.post("/partners/{partner_id}/seed-baseline")
 async def seed_baseline(
     partner_id: str,
+    request: Request,
     avg_daily_orders: int = 20,
     avg_daily_hours: float = 8.0,
+    city: str = "",
+    zone: str = "",
 ):
     supabase = get_supabase()
     seed_partner_baseline(partner_id, avg_daily_orders, avg_daily_hours, supabase)
+
+    if not city or not zone:
+        partner_result = (
+            supabase.table("partners")
+            .select("city, operating_zone")
+            .eq("id", partner_id)
+            .limit(1)
+            .execute()
+        )
+        if partner_result.data:
+            city = city or partner_result.data[0].get("city", "")
+            zone = zone or partner_result.data[0].get("operating_zone", "")
+
+    if city and zone:
+        registration_ip = request.client.host if request.client else ""
+        await run_layer1(partner_id, city, zone, registration_ip, supabase)
+
     return {"success": True}
+
+
+@router.get("/adverse-selection-check")
+async def adverse_selection_check(city: str):
+    """
+    Called at onboarding completion and at Change Plan.
+    Returns blocked=True if OWM 5-day forecast breach probability
+    exceeds ADVERSE_SELECTION_FORECAST_THRESHOLD for any trigger type.
+    """
+    result = await check_adverse_selection_forecast(city)
+    return result
 
 
 IFSC_BANK_MAP = {
