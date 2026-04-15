@@ -107,6 +107,21 @@ async function fetchEarningsProtected(partnerId) {
   }
 }
 
+async function checkActiveAdverseSelection(city) {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/kyc/adverse-selection-check` +
+        `?city=${encodeURIComponent(city)}`,
+    )
+    if (!response.ok) return null
+
+    const data = await response.json()
+    return data.blocked ? data : null
+  } catch {
+    return null
+  }
+}
+
 function getZoneRiskLabel(score, zone, city) {
   if (!score) return null
 
@@ -134,6 +149,7 @@ export function DashboardScreen() {
   const { registrationResult, profile, activeTrigger } = useGRIP()
   const { claims, loading } = useClaimsData()
   const [earningsProtected, setEarningsProtected] = useState(0)
+  const [adverseWarning, setAdverseWarning] = useState(null)
   const partner = registrationResult?.partner
   const city = partner?.city || profile?.city || 'your city'
   const score = parseFloat(partner?.zone_risk_score || profile?.zoneRiskScore || 1.0)
@@ -173,15 +189,22 @@ export function DashboardScreen() {
     : 'today'
 
   useEffect(() => {
-    async function loadEarningsProtected() {
+    async function loadDashboardData() {
       if (partner?.id) {
         const total = await fetchEarningsProtected(partner.id)
         setEarningsProtected(total)
       }
+
+      if (partner?.city) {
+        const warning = await checkActiveAdverseSelection(partner.city)
+        setAdverseWarning(warning)
+      } else {
+        setAdverseWarning(null)
+      }
     }
 
-    loadEarningsProtected()
-  }, [partner?.id])
+    loadDashboardData()
+  }, [partner?.city, partner?.id])
 
   return (
     <PageTransition className="relative flex min-h-full flex-col overflow-hidden">
@@ -207,6 +230,39 @@ export function DashboardScreen() {
       <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <StaggerGroup className="space-y-6">
           <div className="space-y-3">
+            {adverseWarning ? (
+              <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Weather disruption predicted in {partner?.city}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
+                      Your coverage is active. If a trigger fires, your payout will be
+                      processed automatically - no action needed.
+                    </p>
+                    {adverseWarning.probabilities ? (
+                      <div className="mt-2 flex gap-3">
+                        {Object.entries(adverseWarning.probabilities).map(([type, probability]) =>
+                          probability > 0 ? (
+                            <div key={type} className="rounded-lg bg-amber-100 px-2 py-1">
+                              <p className="text-[10px] capitalize text-amber-600">
+                                {type}
+                              </p>
+                              <p className="text-xs font-medium text-amber-800">
+                                {Math.round(probability * 100)}% chance
+                              </p>
+                            </div>
+                          ) : null,
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="mb-4 rounded-2xl bg-[#1a2e4a] px-5 py-4">
               <p className="mb-1 text-xs uppercase tracking-widest text-white/60">
                 Earnings protected

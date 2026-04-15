@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { CheckIcon } from '../components/icons'
@@ -22,6 +22,7 @@ export function PolicySelectionScreen() {
   const [pendingPlan, setPendingPlan] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [adverseWarning, setAdverseWarning] = useState(null)
 
   const partner = registrationResult?.partner
   const zoneRiskScore = Number(partner?.zone_risk_score) || 1
@@ -49,6 +50,20 @@ export function PolicySelectionScreen() {
       return { blocked: false }
     }
   }
+
+  useEffect(() => {
+    async function loadAdverseWarning() {
+      if (!partner?.city) {
+        setAdverseWarning(null)
+        return
+      }
+
+      const warning = await checkAdverseSelection(partner.city)
+      setAdverseWarning(warning?.blocked ? warning : null)
+    }
+
+    loadAdverseWarning()
+  }, [partner?.city])
 
   async function handleConfirm() {
     if (!pendingPlan) return
@@ -108,6 +123,45 @@ export function PolicySelectionScreen() {
 
       <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 sm:px-5 sm:pb-6 sm:pt-6">
         <div className="space-y-6">
+          {adverseWarning ? (
+            <div>
+              <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Weather disruption predicted in {partner?.city}
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
+                      Your coverage is active. If a trigger fires, your payout will be
+                      processed automatically - no action needed.
+                    </p>
+                    {adverseWarning.probabilities ? (
+                      <div className="mt-2 flex gap-3">
+                        {Object.entries(adverseWarning.probabilities).map(([type, probability]) =>
+                          probability > 0 ? (
+                            <div key={type} className="rounded-lg bg-amber-100 px-2 py-1">
+                              <p className="text-[10px] capitalize text-amber-600">
+                                {type}
+                              </p>
+                              <p className="text-xs font-medium text-amber-800">
+                                {Math.round(probability * 100)}% chance
+                              </p>
+                            </div>
+                          ) : null,
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-amber-600">
+                Plan upgrades are paused during predicted high-risk periods. Your
+                current plan remains active and will pay out if a trigger fires.
+              </p>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <h2 className="text-[18px] font-semibold text-text-primary">
               Select your coverage tier

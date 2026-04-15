@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useGRIP } from './GRIPContext'
 
@@ -30,8 +30,8 @@ export function NotificationProvider({ children }) {
           : 'Unknown'
 
         const message = isFraud
-          ? `Claim flagged for review — ${triggerLabel} trigger`
-          : `Rs ${claim.payout_amount ?? 400} payout approved — ${triggerLabel} trigger`
+          ? `Claim flagged for review - ${triggerLabel} trigger`
+          : `Rs ${claim.payout_amount ?? 400} payout approved - ${triggerLabel} trigger`
 
         const notification = {
           id: claim.id,
@@ -42,25 +42,56 @@ export function NotificationProvider({ children }) {
           claim_number: claim.claim_number,
         }
 
-        setNotifications(prev => [notification, ...prev])
+        setNotifications((prev) => [notification, ...prev])
 
-        // show toast
         if (toastTimer.current) clearTimeout(toastTimer.current)
         setToast(notification)
-        toastTimer.current = setTimeout(() => setToast(null), 4000)
+        toastTimer.current = setTimeout(() => setToast(null), 5000)
+      })
+      .subscribe()
+
+    const payoutChannel = supabase
+      .channel(`payouts-${partner.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'payouts',
+        filter: `partner_id=eq.${partner.id}`
+      }, (payload) => {
+        const payout = payload.new
+        const payoutId = payout.razorpay_payout_id || ''
+        const amount = payout.amount || 0
+
+        const message = `Rs ${amount} credited - ${payoutId}`
+
+        const notification = {
+          id: payout.id,
+          message,
+          read: false,
+          created_at: payout.settled_at || new Date().toISOString(),
+          type: 'success',
+          payout_id: payoutId,
+        }
+
+        setNotifications((prev) => [notification, ...prev])
+
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+        setToast(notification)
+        toastTimer.current = setTimeout(() => setToast(null), 5000)
       })
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(payoutChannel)
       if (toastTimer.current) clearTimeout(toastTimer.current)
     }
   }, [partner?.id])
 
   const markAllRead = () =>
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter((notification) => !notification.read).length
 
   return (
     <NotificationContext.Provider

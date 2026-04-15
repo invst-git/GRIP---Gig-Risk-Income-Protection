@@ -26,6 +26,11 @@ export default function NotificationToast() {
                        ${isWarning ? 'text-amber-600' : 'text-green-600'}`}>
           {toast?.message}
         </p>
+        {toast?.payout_id ? (
+          <p className="mt-0.5 text-[10px] font-mono text-green-500">
+            {toast.payout_id}
+          </p>
+        ) : null}
       </div>
     </div>
   )
