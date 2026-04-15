@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .services.aqi_service import get_city_aqi
 from .services.claim_service import create_claims_for_trigger, get_supabase
+from .services.fraud_layer3 import oracle_integrity_check
 from .services.fraud_psi import run_psi_monitor
 from .services.weather_service import get_current_weather
 from .trigger_config import CITY_COORDS, TRIGGERS
@@ -113,23 +114,36 @@ async def evaluate_city(city: str):
     if weather:
         evaluations.extend(
             [
-                ("heat", weather["temp_c"], TRIGGERS["heat"]["threshold"], weather["source"]),
+                (
+                    "heat",
+                    weather["temp_c"],
+                    TRIGGERS["heat"]["threshold"],
+                    weather["source"],
+                    None,
+                ),
                 (
                     "rainfall",
                     weather["rain_mm_24h"],
                     TRIGGERS["rainfall"]["threshold"],
                     weather["source"],
+                    None,
                 ),
             ],
         )
 
     if aqi:
-        evaluations.append(("aqi", aqi["aqi"], TRIGGERS["aqi"]["threshold"], aqi["source"]))
+        evaluations.append((
+            "aqi",
+            aqi["aqi"],
+            TRIGGERS["aqi"]["threshold"],
+            aqi["source"],
+            aqi["aqi"],
+        ))
 
     curfew_value = await get_curfew_status(city, supabase)
-    evaluations.append(("curfew", curfew_value, TRIGGERS["curfew"]["threshold"], "Supabase"))
+    evaluations.append(("curfew", curfew_value, TRIGGERS["curfew"]["threshold"], "Supabase", None))
 
-    for trigger_type, raw_value, threshold, source in evaluations:
+    for trigger_type, raw_value, threshold, source, cpcb_value in evaluations:
         breached = raw_value >= threshold
         order_drop = _simulate_order_drop(city, trigger_type) if breached else 0.0
         and_condition = order_drop >= TRIGGERS[trigger_type]["order_drop_pct"]
@@ -143,6 +157,14 @@ async def evaluate_city(city: str):
             _persistence_key(city, trigger_type),
             {},
         ).get("count", 0 if not breached else 1)
+
+        oracle_result = await oracle_integrity_check(
+            city=city,
+            trigger_type=trigger_type,
+            raw_value=raw_value,
+            cpcb_value=cpcb_value if trigger_type == "aqi" else None,
+            supabase=supabase,
+        )
 
         event_data = {
             "trigger_type": trigger_type,
@@ -161,9 +183,26 @@ async def evaluate_city(city: str):
                 "curfew_active": bool(curfew_value),
             },
         }
+        event_data.update({
+            "single_source_breach": oracle_result["single_source_breach"],
+            "statistical_outlier": oracle_result["statistical_outlier"],
+            "percentile": oracle_result["percentile"],
+            "cpcb_raw_value": oracle_result["cpcb_raw_value"],
+            "oracle_confirmed": oracle_result["oracle_confirmed"],
+        })
 
         result = supabase.table("trigger_events").insert(event_data).execute()
         event = _get_inserted_row(result)
+
+        if confirmed and not oracle_result["oracle_confirmed"]:
+            logger.warning(
+                "[TriggerEngine] Oracle integrity failed for %s %s raw=%s single_source=%s - skipping claim creation for this trigger",
+                city,
+                trigger_type,
+                raw_value,
+                oracle_result["single_source_breach"],
+            )
+            continue
 
         if confirmed:
             logger.info(
@@ -188,12 +227,13 @@ async def evaluate_city(city: str):
 
 async def poll_all_cities():
     """Called by scheduler every 15 minutes."""
+    supabase = get_supabase()
     logger.info("[TriggerEngine] Polling all cities at %s", datetime.now(UTC).isoformat())
     for city in CITY_COORDS:
         await evaluate_city(city)
 
     try:
-        await run_psi_monitor(get_supabase())
+        await run_psi_monitor(supabase)
     except Exception as exc:  # noqa: BLE001
         logger.error("[TriggerEngine] PSI monitor failed: %s", exc)
 

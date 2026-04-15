@@ -4,6 +4,7 @@ import { PageTransition } from '../components/PageTransition'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { StepDots } from '../components/StepDots'
 import { Card, PrimaryButton } from '../components/ui'
+import { useGRIP } from '../context/GRIPContext'
 
 const EXCLUSIONS = [
   {
@@ -40,7 +41,34 @@ const EXCLUSIONS = [
 
 export default function OnboardingExclusions() {
   const navigate = useNavigate()
+  const { onboardingForm } = useGRIP()
   const [agreed, setAgreed] = useState(false)
+  const [error, setError] = useState(null)
+
+  const checkAdverseSelection = async (city) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/kyc/adverse-selection-check` +
+          `?city=${encodeURIComponent(city)}`,
+      )
+      if (!response.ok) return { blocked: false }
+      return await response.json()
+    } catch {
+      return { blocked: false }
+    }
+  }
+
+  async function handleComplete() {
+    setError(null)
+    const adverseCheck = await checkAdverseSelection(onboardingForm.city)
+    if (adverseCheck.blocked) {
+      setError(
+        `Coverage activation is temporarily paused due to predicted weather conditions in ${onboardingForm.city}. Expected clearance: ${adverseCheck.clearance_date}. Your profile is saved and coverage will activate automatically when conditions clear.`,
+      )
+      return
+    }
+    navigate('/onboarding/complete')
+  }
 
   return (
     <PageTransition className="flex min-h-full flex-col">
@@ -95,6 +123,12 @@ export default function OnboardingExclusions() {
               </label>
             </div>
           </div>
+
+          {error ? (
+            <Card>
+              <p className="text-[13px] leading-6 text-accent-danger">{error}</p>
+            </Card>
+          ) : null}
         </div>
       </div>
 
@@ -102,7 +136,7 @@ export default function OnboardingExclusions() {
         <div className="mx-auto w-full max-w-[390px]">
           <PrimaryButton
             disabled={!agreed}
-            onClick={() => navigate('/onboarding/complete')}
+            onClick={handleComplete}
           >
             Activate My Policy
           </PrimaryButton>

@@ -37,6 +37,19 @@ export function PolicySelectionScreen() {
     weeklyCap: TIER_CAPS[plan.name],
   }))
 
+  const checkAdverseSelection = async (city) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/kyc/adverse-selection-check` +
+          `?city=${encodeURIComponent(city)}`,
+      )
+      if (!response.ok) return { blocked: false }
+      return await response.json()
+    } catch {
+      return { blocked: false }
+    }
+  }
+
   async function handleConfirm() {
     if (!pendingPlan) return
     setIsLoading(true)
@@ -47,6 +60,14 @@ export function PolicySelectionScreen() {
 
       if (!partnerId) {
         throw new Error('Partner context missing')
+      }
+
+      const adverseCheck = await checkAdverseSelection(partner?.city)
+      if (adverseCheck.blocked) {
+        setError(
+          `Plan upgrades are paused during predicted high-risk weather periods in ${partner.city}. Expected clearance: ${adverseCheck.clearance_date}.`,
+        )
+        return
       }
 
       const result = await updatePartnerPlan(partnerId, policyId, pendingPlan.name)

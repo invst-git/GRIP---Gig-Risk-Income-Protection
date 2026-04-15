@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AdminTopTabs } from '../components/AdminTopTabs'
 import { PageTransition } from '../components/PageTransition'
 import { StaggerGroup } from '../components/StaggerGroup'
 import { Card, ProgressBar, StatusBadge } from '../components/ui'
 import { useAnalyticsData } from '../hooks/useAnalyticsData'
+import { supabase } from '../lib/supabase'
 import { formatCurrency } from '../lib/utils'
 
 const triggerOrder = ['heat', 'rainfall', 'aqi', 'curfew']
@@ -114,6 +115,11 @@ function LoadingSkeleton() {
 export function AdminDashboardScreen() {
   const location = useLocation()
   const { data, loading, error } = useAnalyticsData()
+  const [fraudIntelligence, setFraudIntelligence] = useState({
+    fraudStats: [],
+    modelHealth: null,
+    oracleFlags: [],
+  })
 
   useEffect(() => {
     if (location.hash === '#partners') {
@@ -123,6 +129,51 @@ export function AdminDashboardScreen() {
       })
     }
   }, [location.hash])
+
+  useEffect(() => {
+    let isActive = true
+
+    async function fetchFraudIntelligence() {
+      const FRAUD_STATS_LOOKBACK_DAYS = 30
+      const thirtyDaysAgo = new Date(
+        Date.now() - FRAUD_STATS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString()
+
+      const [{ data: fraudStats }, { data: modelHealth }, { data: oracleFlags }] = await Promise.all([
+        supabase
+          .from('claims')
+          .select('layer1_flag, layer2_flag, layer3_flag, flags_count, created_at')
+          .gte('created_at', thirtyDaysAgo),
+        supabase
+          .from('model_health')
+          .select('psi_value, status, live_mean, sample_count, computed_at')
+          .eq('model_name', 'isolation_forest_v2')
+          .order('computed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('trigger_events')
+          .select('single_source_breach, statistical_outlier, percentile')
+          .gte('fired_at', thirtyDaysAgo),
+      ])
+
+      if (!isActive) return
+
+      setFraudIntelligence({
+        fraudStats: fraudStats || [],
+        modelHealth: modelHealth || null,
+        oracleFlags: oracleFlags || [],
+      })
+    }
+
+    fetchFraudIntelligence()
+    const interval = window.setInterval(fetchFraudIntelligence, 30000)
+
+    return () => {
+      isActive = false
+      window.clearInterval(interval)
+    }
+  }, [])
 
   if (loading && !data) return <LoadingSkeleton />
 
@@ -196,6 +247,69 @@ export function AdminDashboardScreen() {
                 {analytics.lossRatio}%
               </p>
             </Card>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-[15px] font-semibold text-text-primary">
+              Fraud Intelligence - Last 30 Days
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: 'Layer 1 flags',
+                  sublabel: 'Zone or identity',
+                  value: fraudIntelligence.fraudStats.filter((claim) => claim.layer1_flag).length,
+                  color: 'amber',
+                },
+                {
+                  label: 'Layer 2 flags',
+                  sublabel: 'Isolation Forest',
+                  value: fraudIntelligence.fraudStats.filter((claim) => claim.layer2_flag).length,
+                  color: 'amber',
+                },
+                {
+                  label: 'Layer 3 flags',
+                  sublabel: 'Adverse selection',
+                  value: fraudIntelligence.fraudStats.filter((claim) => claim.layer3_flag).length,
+                  color: 'amber',
+                },
+                {
+                  label: 'Multi-layer (2+)',
+                  sublabel: 'Manual review queue',
+                  value: fraudIntelligence.fraudStats.filter((claim) => claim.flags_count >= 2).length,
+                  color: 'red',
+                },
+                {
+                  label: 'Model stability',
+                  sublabel: `PSI ${fraudIntelligence.modelHealth?.psi_value ?? '—'}`,
+                  value: fraudIntelligence.modelHealth?.status ?? 'no data',
+                  color: fraudIntelligence.modelHealth?.status === 'retrain'
+                    ? 'red'
+                    : fraudIntelligence.modelHealth?.status === 'monitor'
+                      ? 'amber'
+                      : 'green',
+                },
+                {
+                  label: 'Oracle flags',
+                  sublabel: 'Single-source breaches',
+                  value: fraudIntelligence.oracleFlags.filter((event) => event.single_source_breach).length,
+                  color: 'amber',
+                },
+              ].map(({ label, sublabel, value, color }) => (
+                <div
+                  key={label}
+                  className={`rounded-xl border p-4 ${color === 'red' ? 'border-red-200 bg-red-50' : ''} ${color === 'amber' ? 'border-amber-200 bg-amber-50' : ''} ${color === 'green' ? 'border-green-200 bg-green-50' : ''}`}
+                >
+                  <p className="text-xs text-text-secondary">{label}</p>
+                  <p className="text-xs text-text-secondary opacity-60">{sublabel}</p>
+                  <p
+                    className={`mt-1 text-2xl font-semibold ${color === 'red' ? 'text-red-700' : ''} ${color === 'amber' ? 'text-amber-700' : ''} ${color === 'green' ? 'text-green-700' : ''}`}
+                  >
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="space-y-3">

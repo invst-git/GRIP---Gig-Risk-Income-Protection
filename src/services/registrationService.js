@@ -59,11 +59,18 @@ export async function registerPartner(formData, selectedPlanName = 'Standard') {
 
   // Seed 12 weeks of behavioral baseline for fraud scoring (fire-and-forget)
   if (import.meta.env.VITE_API_BASE_URL) {
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/kyc/partners/${partner.id}/seed-baseline` +
-        `?avg_daily_orders=${Number(formData.avgDailyOrders)}&avg_daily_hours=${Number(formData.avgDailyHours)}`,
-      { method: 'POST' },
-    ).catch(() => {/* non-critical — baseline will fall back to 0.08 */})
+    try {
+      await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/kyc/partners/${partner.id}/seed-baseline` +
+          `?avg_daily_orders=${encodeURIComponent(formData.avgDailyOrders || 20)}` +
+          `&avg_daily_hours=${encodeURIComponent(formData.avgDailyHours || 8)}` +
+          `&city=${encodeURIComponent(formData.city || '')}` +
+          `&zone=${encodeURIComponent(formData.operatingZone || '')}`,
+        { method: 'POST' },
+      )
+    } catch {
+      // fire-and-forget - Layer 1 failure never blocks registration
+    }
   }
 
   try {
