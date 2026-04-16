@@ -1,0 +1,6 @@
+ALTER TABLE trigger_events
+  ADD COLUMN IF NOT EXISTS percentile           NUMERIC(5,1),
+  ADD COLUMN IF NOT EXISTS single_source_breach BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS statistical_outlier  BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS cpcb_raw_value       NUMERIC(8,2),
+  ADD COLUMN IF NOT EXISTS oracle_confirmed     BOOLEAN DEFAULT TRUE;

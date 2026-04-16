@@ -43,5 +43,3 @@ CREATE TABLE IF NOT EXISTS model_health (
 
 ALTER TABLE model_health ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all" ON model_health FOR ALL USING (true);
-
--- Migration file reference: supabase/migrations/003_advanced_fraud_detection.sql
