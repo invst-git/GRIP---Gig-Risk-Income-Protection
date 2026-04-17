@@ -31,7 +31,7 @@ def generate_otp() -> str:
 
 async def send_otp_sms(mobile: str, otp: str) -> bool:
     """
-    Send OTP via Fast2SMS Quick route to Indian mobile number.
+    Send OTP via Fast2SMS OTP route to Indian mobile number.
     mobile: 10-digit number without country code (e.g. '9000000001')
     Returns True if sent successfully, False otherwise.
     """
@@ -42,27 +42,25 @@ async def send_otp_sms(mobile: str, otp: str) -> bool:
         )
         return True
 
-    message = (
-        f"Your GRIP insurance OTP is {otp}. "
-        f"Valid for {OTP_EXPIRY_MINUTES} minutes. Do not share."
-    )
-
     try:
         async with httpx.AsyncClient(timeout=FAST2SMS_TIMEOUT) as client:
             resp = await client.get(
                 FAST2SMS_URL,
-                params={
+                headers={
                     "authorization": FAST2SMS_API_KEY,
-                    "variables_values":otp,
-                    "route": "otp",
-                    "numbers": mobile,
+                    "Content-Type":  "application/json",
+                },
+                params={
+                    "variables_values": otp,
+                    "route":            "otp",
+                    "numbers":          mobile,
                 },
             )
             resp.raise_for_status()
 
         data = resp.json()
         if data.get("return") is True:
-            logger.info(f"[OTPService] OTP sent to {mobile[-4:].zfill(10)} via Fast2SMS")
+            logger.info(f"[OTPService] OTP sent to {mobile} via Fast2SMS")
             return True
 
         logger.error(f"[OTPService] Fast2SMS returned error: {data}")
