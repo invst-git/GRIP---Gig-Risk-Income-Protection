@@ -70,7 +70,7 @@ That is the only problem GRIP is trying to solve. Everything else is secondary.
 
 ## 3. What GRIP Is
 
-GRIP is an AI-powered parametric insurance platform for Indian food delivery partners on Zomato and Swiggy. It protects against four classes of income-loss disruption that are outside a partner's control: extreme heat, extreme rainfall, severe air quality, and government-ordered curfew or zone suspension.
+GRIP is a parametric insurance platform for Indian food delivery partners on Zomato and Swiggy. It protects against four classes of income-loss disruption that are outside a partner's control: extreme heat, extreme rainfall, severe air quality, and government-ordered curfew or zone suspension.
 
 - Coverage scope is strictly loss of income only. Health, life, and vehicle perils are permanently excluded and the exclusion is enforced via a mandatory consent screen before policy activation.
 - Premiums are structured weekly, calibrated to gig worker cash flow, and priced dynamically by an XGBoost model on 12 features including operating zone, city, vehicle type, season, and historical hazard frequency.
