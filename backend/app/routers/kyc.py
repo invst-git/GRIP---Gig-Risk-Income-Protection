@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -10,13 +10,11 @@ from supabase import create_client
 from ..services.activity_service import seed_partner_baseline
 from ..services.fraud_layer1 import haversine_km, run_layer1
 from ..services.fraud_layer3 import check_adverse_selection_forecast
-from ..services.otp_service import OTP_EXPIRY_MINUTES, generate_otp, send_otp_sms
 from ..services.ring_detection import detect_ring_membership
 from ..trigger_config import ZONE_DISTANCE_THRESHOLD_KM
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-_otp_store: dict[str, dict] = {}
 
 
 def get_supabase():
@@ -38,89 +36,37 @@ class OTPVerify(BaseModel):
 @router.post("/send-otp")
 async def send_otp(req: OTPRequest):
     """
-    Generate and send real OTP via Fast2SMS.
-    Stores OTP with expiry in memory for verification.
+    Demo OTP flow.
+    OTP is always 1234 for valid Indian mobile numbers.
     """
     mobile_clean = req.mobile_number.replace("+91", "").replace(" ", "").strip()
 
     if not re.match(r"^\d{10}$", mobile_clean):
         return {"success": False, "error": "Invalid mobile number"}
 
-    otp = generate_otp()
-    expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
-    success, error_message = await send_otp_sms(mobile_clean, otp)
-
-    if success:
-        _otp_store[mobile_clean] = {
-            "otp": otp,
-            "expiry": expiry,
-            "attempts": 0,
-        }
-        return {
-            "success": True,
-            "message": f"OTP sent to {mobile_clean[-4:].zfill(10)}",
-            "expires_in_minutes": OTP_EXPIRY_MINUTES,
-        }
-
     return {
-        "success": False,
-        "message": error_message or "SMS delivery failed. Please try again.",
-        "error": error_message or "SMS delivery failed. Please try again.",
+        "success": True,
+        "message": "OTP sent (use 1234 in demo mode)",
     }
 
 
 @router.post("/verify-otp")
 async def verify_otp(req: OTPVerify):
     """
-    Verify OTP entered by partner.
-    Max 3 attempts before invalidation.
-    OTP expires after OTP_EXPIRY_MINUTES.
+    Demo OTP verification.
     """
-    mobile_clean = req.mobile_number.replace("+91", "").replace(" ", "").strip()
-    stored = _otp_store.get(mobile_clean)
-
-    if not stored:
-        return {
-            "success": False,
-            "verified": False,
-            "message": "No OTP found. Please request a new one.",
-            "error": "No OTP found. Please request a new one.",
-        }
-
-    if datetime.now(tz=timezone.utc) > stored["expiry"]:
-        del _otp_store[mobile_clean]
-        return {
-            "success": False,
-            "verified": False,
-            "message": "OTP expired. Please request a new one.",
-            "error": "OTP expired. Please request a new one.",
-        }
-
-    stored["attempts"] += 1
-    if stored["attempts"] > 3:
-        del _otp_store[mobile_clean]
-        return {
-            "success": False,
-            "verified": False,
-            "message": "Too many attempts. Please request a new OTP.",
-            "error": "Too many attempts. Please request a new OTP.",
-        }
-
-    if stored["otp"] == req.otp.strip():
-        del _otp_store[mobile_clean]
+    if req.otp.strip() == "1234":
         return {
             "success": True,
             "verified": True,
             "message": "OTP verified successfully.",
         }
 
-    remaining = 3 - stored["attempts"]
-    message = f"Invalid OTP. {remaining} attempt(s) remaining."
     return {
         "success": False,
         "verified": False,
-        "message": message,
-        "error": message,
+        "message": "Invalid OTP",
+        "error": "Invalid OTP",
     }
 
 
