@@ -207,6 +207,8 @@ async def create_claims_for_trigger(trigger_event: dict):
             partner.get("zone_coordinates_flag")
             or partner.get("identity_duplication_flag")
             or partner.get("enrollment_trigger_count", 0) > 0
+            or partner.get("ipqs_ip_suspicious")
+            or partner.get("ring_flag")
         )
         layer2_flag = bool(fraud_result.get("is_fraud_flag"))
         layer3_flag = bool(

@@ -9,6 +9,7 @@ from supabase import create_client
 from ..services.activity_service import seed_partner_baseline
 from ..services.fraud_layer1 import run_layer1
 from ..services.fraud_layer3 import check_adverse_selection_forecast
+from ..services.ring_detection import detect_ring_membership
 
 router = APIRouter()
 
@@ -206,6 +207,19 @@ async def seed_baseline(
     if city and zone:
         registration_ip = request.client.host if request.client else ""
         await run_layer1(partner_id, city, zone, registration_ip, supabase)
+
+    ring_result = await detect_ring_membership(partner_id, supabase)
+
+    (
+        supabase.table("partners")
+        .update({
+            "ring_flag": ring_result["ring_flag"],
+            "ring_cluster_id": ring_result["ring_cluster_id"],
+            "ring_edge_types": ring_result["ring_edge_types"],
+        })
+        .eq("id", partner_id)
+        .execute()
+    )
 
     return {"success": True}
 

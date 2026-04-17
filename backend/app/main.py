@@ -415,3 +415,41 @@ async def get_stress_test():
     except Exception as e:  # noqa: BLE001
         logger.error(f"[StressTest] Computation failed: {e}")
         return {"error": str(e)}
+
+
+@app.get("/admin/ring-detection")
+async def get_ring_detection():
+    """
+    Return all partners flagged as potential ring members.
+    Groups by cluster_id for admin review.
+    """
+    supabase = get_supabase()
+
+    try:
+        result = (
+            supabase.table("partners")
+            .select(
+                "id, full_name, city, operating_zone, "
+                "ring_flag, ring_cluster_id, ring_edge_types, "
+                "registration_ip, upi_id, enrolled_since"
+            )
+            .eq("ring_flag", True)
+            .order("ring_cluster_id")
+            .execute()
+        )
+
+        partners = result.data or []
+        clusters: dict = {}
+        for partner in partners:
+            cluster_id = partner.get("ring_cluster_id") or "unknown"
+            clusters.setdefault(cluster_id, []).append(partner)
+
+        return {
+            "flagged_partner_count": len(partners),
+            "cluster_count": len(clusters),
+            "clusters": clusters,
+        }
+
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"[RingDetection] Admin endpoint failed: {e}")
+        return {"flagged_partner_count": 0, "cluster_count": 0, "clusters": {}}

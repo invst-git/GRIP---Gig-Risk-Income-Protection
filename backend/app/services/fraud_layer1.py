@@ -24,6 +24,9 @@ from ..trigger_config import (
 logger = logging.getLogger(__name__)
 
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+IPQS_API_KEY = os.getenv("IPQS_API_KEY", "")
+IPQS_FRAUD_THRESHOLD = 75
+IPQS_TIMEOUT_SECONDS = 5.0
 
 
 def haversine_km(
@@ -170,6 +173,90 @@ async def check_ip_duplication(registration_ip: str, supabase) -> dict:
         }
 
 
+async def check_ip_quality(registration_ip: str) -> dict:
+    """
+    Call IPQualityScore to assess registration IP risk.
+    Returns fraud_score, vpn/proxy/tor flags.
+    Fails open - a failed call never blocks registration.
+
+    Signals checked:
+    - fraud_score: 0-100, flag if >= IPQS_FRAUD_THRESHOLD
+    - is_vpn: partner registered through a VPN
+    - is_proxy: partner registered through a proxy
+    - is_tor: partner registered through Tor
+
+    Note: Indian mobile CGNAT (Jio/Airtel) will geolocate to
+    NOC city (Mumbai/Delhi) regardless of actual location.
+    Use ASN change + distance for impossible travel, not city alone.
+    """
+    private_prefixes = ("127.", "192.168.", "10.", "::1")
+    if any(registration_ip.startswith(prefix) for prefix in private_prefixes):
+        return {
+            "ipqs_fraud_score": 0,
+            "ipqs_is_vpn": False,
+            "ipqs_is_proxy": False,
+            "ipqs_is_tor": False,
+            "ipqs_ip_suspicious": False,
+        }
+
+    if not IPQS_API_KEY:
+        logger.warning("[Layer1/IPQS] IPQS_API_KEY not set - skipping IP quality check")
+        return {
+            "ipqs_fraud_score": 0,
+            "ipqs_is_vpn": False,
+            "ipqs_is_proxy": False,
+            "ipqs_is_tor": False,
+            "ipqs_ip_suspicious": False,
+        }
+
+    url = f"https://ipqualityscore.com/api/json/ip/{IPQS_API_KEY}/{registration_ip}"
+
+    try:
+        async with httpx.AsyncClient(timeout=IPQS_TIMEOUT_SECONDS) as client:
+            resp = await client.get(
+                url,
+                params={
+                    "strictness": 1,
+                    "allow_public_access_points": True,
+                    "lighter_penalties": True,
+                    "mobile": True,
+                },
+            )
+            resp.raise_for_status()
+
+        data = resp.json()
+
+        fraud_score = int(data.get("fraud_score", 0))
+        is_vpn = bool(data.get("vpn", False))
+        is_proxy = bool(data.get("proxy", False))
+        is_tor = bool(data.get("tor", False))
+        suspicious = fraud_score >= IPQS_FRAUD_THRESHOLD or is_tor
+
+        if suspicious:
+            logger.warning(
+                f"[Layer1/IPQS] Suspicious IP {registration_ip}: "
+                f"score={fraud_score} vpn={is_vpn} proxy={is_proxy} tor={is_tor}"
+            )
+
+        return {
+            "ipqs_fraud_score": fraud_score,
+            "ipqs_is_vpn": is_vpn,
+            "ipqs_is_proxy": is_proxy,
+            "ipqs_is_tor": is_tor,
+            "ipqs_ip_suspicious": suspicious,
+        }
+
+    except Exception as e:
+        logger.warning(f"[Layer1/IPQS] IP quality check failed for {registration_ip}: {e}")
+        return {
+            "ipqs_fraud_score": 0,
+            "ipqs_is_vpn": False,
+            "ipqs_is_proxy": False,
+            "ipqs_is_tor": False,
+            "ipqs_ip_suspicious": False,
+        }
+
+
 async def check_enrollment_timing(city: str, supabase) -> dict:
     """
     Count confirmed triggers in the partner's city in the prior
@@ -213,11 +300,13 @@ async def run_layer1(
     """
     zone_result = await check_zone_coordinates(zone, city)
     ip_result = await check_ip_duplication(registration_ip, supabase)
+    ipqs_result = await check_ip_quality(registration_ip)
     timing_result = await check_enrollment_timing(city, supabase)
 
     update_payload = {
         **zone_result,
         **ip_result,
+        **ipqs_result,
         **timing_result,
         "registration_ip": registration_ip,
     }
@@ -234,6 +323,8 @@ async def run_layer1(
             f"[Layer1] Completed for partner {partner_id}: "
             f"zone_flag={zone_result['zone_coordinates_flag']} "
             f"ip_flag={ip_result['identity_duplication_flag']} "
+            f"ipqs_score={ipqs_result['ipqs_fraud_score']} "
+            f"ip_suspicious={ipqs_result['ipqs_ip_suspicious']} "
             f"trigger_count={timing_result['enrollment_trigger_count']}"
         )
 
