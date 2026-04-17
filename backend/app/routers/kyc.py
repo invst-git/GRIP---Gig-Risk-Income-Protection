@@ -48,15 +48,14 @@ async def send_otp(req: OTPRequest):
 
     otp = generate_otp()
     expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
-    success = await send_otp_sms(mobile_clean, otp)
-
-    _otp_store[mobile_clean] = {
-        "otp": otp,
-        "expiry": expiry,
-        "attempts": 0,
-    }
+    success, error_message = await send_otp_sms(mobile_clean, otp)
 
     if success:
+        _otp_store[mobile_clean] = {
+            "otp": otp,
+            "expiry": expiry,
+            "attempts": 0,
+        }
         return {
             "success": True,
             "message": f"OTP sent to {mobile_clean[-4:].zfill(10)}",
@@ -65,8 +64,8 @@ async def send_otp(req: OTPRequest):
 
     return {
         "success": False,
-        "message": "SMS delivery failed. Please try again.",
-        "error": "SMS delivery failed. Please try again.",
+        "message": error_message or "SMS delivery failed. Please try again.",
+        "error": error_message or "SMS delivery failed. Please try again.",
     }
 
 
