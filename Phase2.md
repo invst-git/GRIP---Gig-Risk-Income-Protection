@@ -421,21 +421,6 @@ The `pout_DEMO_` prefix makes the simulation status unambiguous in all UI and da
 
 ---
 
-
-## What Phase 3 Adds
-
-Phase 2 delivers the complete automated protection loop. Phase 3 adds:
-
-- Advanced GPS spoofing detection via Google Play Integrity API `MEETS_STRONG_INTEGRITY` verdict
-- GNSS raw signal analysis (C/N0 and AGC anomaly detection)
-- Device graph clustering for coordinated ring detection
-- Real RazorpayX payout integration (requires business banking activation)
-- 7-day predictive disruption calendar using IMD forecast data
-- iOS build from existing React Native codebase
-- Partner language localisation (Hindi, Kannada, Tamil, Telugu, Marathi)
-
----
-
 ## Team
 
 Team Exogeneous - Guidewire DEVTrails 2026
