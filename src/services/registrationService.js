@@ -10,7 +10,7 @@ const TIER_MULTIPLIERS = { Basic: 1.0, Standard: 1.25, Premium: 1.5 }
 const TIER_PAYOUTS = { Basic: 300, Standard: 400, Premium: 500 }
 const TIER_CAPS = { Basic: 900, Standard: 1200, Premium: 1500 }
 
-export async function registerPartner(formData, selectedPlanName = 'Standard') {
+export async function registerPartner(formData, selectedPlanName = 'Standard', gpsCoords = null) {
   const premiumQuote = await fetchPremiumQuote(formData)
   const zoneRiskScore = premiumQuote.zone_risk_score
   const weeklyPremium = premiumQuote[TIER_PREMIUM_KEYS[selectedPlanName]]
@@ -70,6 +70,24 @@ export async function registerPartner(formData, selectedPlanName = 'Standard') {
       )
     } catch {
       // fire-and-forget - Layer 1 failure never blocks registration
+    }
+
+    if (gpsCoords) {
+      try {
+        await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/kyc/partners/${partner.id}/enrollment-gps`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: gpsCoords.lat,
+              lng: gpsCoords.lng,
+            }),
+          },
+        )
+      } catch {
+        // fire-and-forget - GPS failure never blocks registration
+      }
     }
   }
 

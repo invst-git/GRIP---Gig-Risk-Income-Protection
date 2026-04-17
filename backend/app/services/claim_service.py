@@ -13,11 +13,13 @@ from ..ml_config import (
     FRAUD_DEFAULT_NETWORK_REUSE_COUNT,
     FRAUD_DEFAULT_NOCTURNAL_FRACTION,
 )
+from .fraud_layer1 import haversine_km
 from ..trigger_config import (
     ADVERSE_SELECTION_ENROLLMENT_DAYS,
     DEFAULT_DAILY_ORDERS,
     FIRST_PAYOUT_CAP,
     PAYOUT_RATES,
+    ZONE_DISTANCE_THRESHOLD_KM,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,51 @@ def compute_activity_kl_divergence(partner_id: str, supabase) -> float:
     except Exception:
         logger.exception("[Fraud] compute_activity_kl_divergence failed for partner %s", partner_id)
         return KL_FALLBACK
+
+
+def compute_zone_match(partner: dict) -> int:
+    """
+    Returns 0 if partner's last known location is outside
+    their registered zone - a real GPS-based zone_match signal.
+
+    Priority:
+    1. last_known_lat/lng within last 24 hours - real GPS signal
+    2. enrollment_gps_flag - enrollment-time GPS check
+    3. zone_coordinates_flag - geocoding-based plausibility check
+    4. Default 1 (no data - assume legitimate)
+    """
+    last_lat = partner.get("last_known_lat")
+    last_lng = partner.get("last_known_lng")
+    last_at = partner.get("last_known_at")
+    zone_lat = partner.get("zone_lat")
+    zone_lng = partner.get("zone_lng")
+
+    if last_lat and last_lng and last_at and zone_lat and zone_lng:
+        try:
+            last_dt = datetime.fromisoformat(str(last_at).replace("Z", "+00:00"))
+            age_hours = (datetime.now(tz=timezone.utc) - last_dt).total_seconds() / 3600
+
+            if age_hours <= 24:
+                distance_km = haversine_km(
+                    float(last_lat), float(last_lng),
+                    float(zone_lat), float(zone_lng),
+                )
+                match = 0 if distance_km > ZONE_DISTANCE_THRESHOLD_KM else 1
+                logger.info(
+                    f"[ClaimService] zone_match from GPS: "
+                    f"distance={distance_km:.1f}km match={match}"
+                )
+                return match
+        except Exception:
+            pass
+
+    if partner.get("enrollment_gps_flag"):
+        return 0
+
+    if partner.get("zone_coordinates_flag"):
+        return 0
+
+    return 1
 
 
 async def call_fraud_score(claim_features: dict) -> dict:
@@ -179,7 +226,7 @@ async def create_claims_for_trigger(trigger_event: dict):
         days_since_enrollment = (date_type.today() - enrolled_since).days
 
         kl_divergence = compute_activity_kl_divergence(partner["id"], supabase)
-        zone_match = 0 if partner.get("zone_coordinates_flag") else 1
+        zone_match = compute_zone_match(partner)
 
         fraud_features = {
             "claim_lag_hours": round(claim_latency_secs / 3600, 4),

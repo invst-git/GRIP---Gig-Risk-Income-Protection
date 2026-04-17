@@ -55,7 +55,6 @@ export function SplashScreen() {
               <div className="flex flex-col gap-1.5">
                 {[
                   { label: 'Mobile', value: '9000000001' },
-                  { label: 'OTP', value: '1234' },
                   { label: 'PAN', value: 'RISHI1234P' },
                   { label: 'DL', value: 'MH0520180034521' },
                   { label: 'RC', value: 'MH5SBJ7823' },

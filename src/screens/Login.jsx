@@ -14,6 +14,32 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  const captureLoginGPS = async (partnerId) => {
+    if (!navigator.geolocation || !import.meta.env.VITE_API_BASE_URL) return
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/kyc/partners/${partnerId}/last-known-location`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }),
+            },
+          )
+        } catch {
+          // silent - GPS update failure never blocks login
+        }
+      },
+      () => {},
+      { timeout: 5000, maximumAge: 60000, enableHighAccuracy: false },
+    )
+  }
+
   async function handleLogin() {
     if (mobile.length < 10) {
       setError('Enter a valid 10-digit mobile number')
@@ -54,6 +80,7 @@ export default function Login() {
         policyNumber: partner.policy_number,
       })
 
+      captureLoginGPS(partner.id)
       navigate('/dashboard')
     } catch {
       setError('Something went wrong. Please try again.')

@@ -25,6 +25,10 @@ from .services.claim_service import (
 )
 from .services.fraud_layer3 import oracle_integrity_check
 from .services.fraud_psi import run_psi_monitor
+from .services.tsdps_scraper import (
+    fetch_hyderabad_mandal_rainfall,
+    get_nearest_mandal_rainfall,
+)
 from .trigger_config import (
     ADVERSE_SELECTION_ENROLLMENT_DAYS,
     CITY_COORDS,
@@ -117,6 +121,7 @@ async def get_zone_rainfall_mm(lat: float, lon: float) -> float:
                     "hourly": "rain",
                     "forecast_days": 1,
                     "timezone": "Asia/Kolkata",
+                    "models": "ecmwf_ifs",
                 },
             )
             resp.raise_for_status()
@@ -146,6 +151,7 @@ async def get_zone_temp_max(lat: float, lon: float) -> float:
                     "daily": "temperature_2m_max",
                     "forecast_days": 1,
                     "timezone": "Asia/Kolkata",
+                    "models": "ecmwf_ifs",
                 },
             )
             resp.raise_for_status()
@@ -384,6 +390,16 @@ async def evaluate_city(city: str):
     aqi_value = aqi["aqi"] if aqi else 0.0
     curfew_value = await get_curfew_status(city, supabase)
 
+    tsdps_data: dict = {}
+    if city == "Hyderabad":
+        tsdps_data = await fetch_hyderabad_mandal_rainfall()
+        if tsdps_data:
+            logger.info(
+                f"[TriggerEngine] Hyderabad: using TSDPS mandal data ({len(tsdps_data)} mandals)"
+            )
+        else:
+            logger.info("[TriggerEngine] Hyderabad: TSDPS unavailable, using Open-Meteo fallback")
+
     zone_groups = await get_partners_grouped_by_zone(city, supabase)
     unique_centroids = list(zone_groups.keys())
 
@@ -482,11 +498,19 @@ async def evaluate_city(city: str):
         threshold = TRIGGERS[trigger_type]["threshold"]
         for centroid, partners_in_zone in zone_groups.items():
             lat, lon = centroid
-            raw_value = (
-                centroid_rainfall[centroid]
-                if trigger_type == "rainfall"
-                else centroid_heat[centroid]
+            tsdps_value = (
+                get_nearest_mandal_rainfall(lat, lon, tsdps_data)
+                if city == "Hyderabad" and trigger_type == "rainfall"
+                else None
             )
+            raw_value = (
+                tsdps_value if tsdps_value is not None else centroid_rainfall[centroid]
+            ) if trigger_type == "rainfall" else centroid_heat[centroid]
+
+            if tsdps_value is not None:
+                logger.info(
+                    f"[TriggerEngine] Hyderabad zone ({lat},{lon}): using TSDPS={tsdps_value}mm"
+                )
             breached = raw_value >= threshold
             order_drop = _simulate_order_drop(city, trigger_type) if breached else 0.0
             and_condition = order_drop >= TRIGGERS[trigger_type]["order_drop_pct"]
@@ -518,7 +542,7 @@ async def evaluate_city(city: str):
                 "threshold": threshold,
                 "persistence_day": persistence_day,
                 "confirmed": confirmed,
-                "data_source": "Open-Meteo",
+                "data_source": "TSDPS" if tsdps_value is not None else "Open-Meteo",
                 "quality_flag": "measured",
                 "zone_level": True,
                 "zone_lat": lat,

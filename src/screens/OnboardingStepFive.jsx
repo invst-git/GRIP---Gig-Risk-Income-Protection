@@ -11,7 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export function OnboardingStepFive() {
   const navigate = useNavigate()
-  const { onboardingForm, updateOnboardingField, submitRegistration } = useGRIP()
+  const { onboardingForm, updateOnboardingField } = useGRIP()
   const [authorized, setAuthorized] = useState(false)
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
@@ -105,7 +105,6 @@ export function OnboardingStepFive() {
         return
       }
 
-      await submitRegistration()
       navigate('/onboarding/exclusions')
     } catch {
       setErrors({ upiId: 'Registration failed. Please try again.' })

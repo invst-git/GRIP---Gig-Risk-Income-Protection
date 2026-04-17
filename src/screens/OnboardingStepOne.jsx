@@ -239,7 +239,6 @@ export function OnboardingStepOne() {
                     maxLength={4}
                     value={otp}
                     onChange={(event) => setOtp(sanitizeDigits(event.target.value, 4))}
-                    note="Use 1234 in demo mode"
                   />
                   <button
                     type="button"

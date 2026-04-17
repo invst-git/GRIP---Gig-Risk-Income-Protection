@@ -222,12 +222,12 @@ export function GRIPProvider({ children }) {
     navigate('/')
   }
 
-  async function submitRegistration() {
+  async function submitRegistration(gpsCoords = null) {
     setIsRegistering(true)
     setRegistrationError(null)
 
     try {
-      const result = await registerPartner(onboardingForm, selectedPlanName)
+      const result = await registerPartner(onboardingForm, selectedPlanName, gpsCoords)
       setRegistrationResult(result)
       return result
     } catch (error) {

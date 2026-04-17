@@ -41,7 +41,7 @@ const EXCLUSIONS = [
 
 export default function OnboardingExclusions() {
   const navigate = useNavigate()
-  const { onboardingForm } = useGRIP()
+  const { onboardingForm, submitRegistration, isRegistering } = useGRIP()
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState(null)
 
@@ -58,16 +58,41 @@ export default function OnboardingExclusions() {
     }
   }
 
+  const captureEnrollmentGPS = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null)
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+        () => resolve(null),
+        { timeout: 8000, maximumAge: 0, enableHighAccuracy: true },
+      )
+    })
+  }
+
   async function handleComplete() {
     setError(null)
+    const gpsCoords = await captureEnrollmentGPS()
     const adverseCheck = await checkAdverseSelection(onboardingForm.city)
     if (adverseCheck.blocked) {
       setError(
-        `Coverage activation is temporarily paused due to predicted weather conditions in ${onboardingForm.city}. Expected clearance: ${adverseCheck.clearance_date}. Your profile is saved and coverage will activate automatically when conditions clear.`,
+        `Coverage activation is temporarily paused due to predicted weather conditions in ${onboardingForm.city}. Expected clearance: ${adverseCheck.clearance_date}.`,
       )
       return
     }
-    navigate('/onboarding/complete')
+
+    try {
+      await submitRegistration(gpsCoords)
+      navigate('/onboarding/complete')
+    } catch {
+      setError('Registration failed. Please try again.')
+    }
   }
 
   return (
@@ -135,8 +160,10 @@ export default function OnboardingExclusions() {
       <div className="px-4 pb-5 pt-2 sm:px-5 sm:pb-6">
         <div className="mx-auto w-full max-w-[390px]">
           <PrimaryButton
-            disabled={!agreed}
+            disabled={!agreed || isRegistering}
             onClick={handleComplete}
+            loading={isRegistering}
+            loadingText="Activating..."
           >
             Activate My Policy
           </PrimaryButton>
