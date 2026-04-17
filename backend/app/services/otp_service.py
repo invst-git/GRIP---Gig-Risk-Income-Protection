@@ -53,9 +53,8 @@ async def send_otp_sms(mobile: str, otp: str) -> bool:
                 FAST2SMS_URL,
                 params={
                     "authorization": FAST2SMS_API_KEY,
-                    "message": message,
-                    "language": "english",
-                    "route": "q",
+                    "variables_values":otp,
+                    "route": "otp",
                     "numbers": mobile,
                 },
             )
