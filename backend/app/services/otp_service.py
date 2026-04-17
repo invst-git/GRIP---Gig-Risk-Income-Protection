@@ -15,15 +15,15 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY", "")
+FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")
 FAST2SMS_URL = "https://www.fast2sms.com/dev/bulkV2"
 FAST2SMS_TIMEOUT = 8.0
 OTP_EXPIRY_MINUTES = 10
-OTP_LENGTH = 6
+OTP_LENGTH = 4
 
 
 def generate_otp() -> str:
-    """Generate a 6-digit numeric OTP."""
+    """Generate a 4-digit numeric OTP."""
     lower = 10 ** (OTP_LENGTH - 1)
     upper = (10 ** OTP_LENGTH) - 1
     return str(random.randint(lower, upper))

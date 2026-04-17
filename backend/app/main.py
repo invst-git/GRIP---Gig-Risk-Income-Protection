@@ -45,7 +45,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "http://localhost:4173",
+        "http://127.0.0.1:4173",
         "https://grip-gig-risk-income-protection.vercel.app",
         "https://exciting-inspiration-production-2029.up.railway.app",
     ],
