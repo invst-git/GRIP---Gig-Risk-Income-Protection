@@ -4,6 +4,8 @@
 
 > This document is the single authoritative technical reference for GRIP as delivered at the end of Week 6. It consolidates the product thesis and architecture from Phase 1, the live systems delivered in Phase 2, and the hardening, real-world signals, and intelligent dashboards added in Phase 3. Where Phase 1 and Phase 2 made claims that were later refined or replaced, this document reflects what is actually implemented in the Week 6 codebase.
 
+## Pitch Deck
+https://drive.google.com/file/d/1QNKXElHGjIxRvYwqOAWVfadvfmLc5ENY/view
 ---
 
 ## Table of Contents
