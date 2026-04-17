@@ -148,31 +148,6 @@ export function OnboardingStepTwo() {
               {panError ? <p className="text-xs text-red-400">{panError}</p> : null}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-medium uppercase tracking-[0.08em] text-text-secondary">
-                Selfie for Identity Verification
-              </label>
-              <div className="flex flex-col items-center gap-2 rounded-input border-2 border-dashed border-border-default bg-bg-surface py-8">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-border-default text-text-secondary">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <p className="text-sm text-text-secondary">Tap to take selfie</p>
-                <p className="text-xs text-text-secondary opacity-60">
-                  Used for liveness verification only
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
